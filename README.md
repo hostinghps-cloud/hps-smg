@@ -1,1 +1,1 @@
-FOlder Gambar
+folder gambar
