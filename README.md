@@ -240,7 +240,6 @@ images/send-email.png
 
 Lalu tampilkan di README:
 
-```md
 ## Dashboard
 
 ![Dashboard](images/dashboard.png)
@@ -254,7 +253,6 @@ Lalu tampilkan di README:
 ![Preview](images/bcemail.png)
 
 
-```
 
 ---
 
