@@ -220,25 +220,6 @@ Partner
 
 # 📷 Tampilan Sistem
 
-Tambahkan screenshot aplikasi pada folder:
-
-```
-images/
-```
-
-Contoh:
-
-```
-images/dashboard.png
-
-images/upload.png
-
-images/email-preview.png
-
-images/send-email.png
-```
-
-Lalu tampilkan di README:
 
 ## Dashboard
 
