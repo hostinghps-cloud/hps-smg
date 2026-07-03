@@ -86,9 +86,8 @@
                                 <option value="W002-TAT14D (Pending case 14 days)">W002-TAT14D (Pending case 14 days)</option>
                                 <option value="W003-TAT5D (Pending case 5 days)">W003-TAT5D (Pending case 5 days)</option>
                                 <option value="W004-KCI">W004-KCI</option>
-                                <option value="W005-Finish Repair">W005-Finish Repair</option>
-                                <option value="W006-Rerepair">W006-Rerepair</option>
-                                <option value="W007-OLA">W007-OLA</option>
+                                <option value="W005-FR (Finish Repair)">W005-FR (Finish Repair)</option>
+                                
                             </select>
 
                         </div>
@@ -228,9 +227,7 @@
                         <option value="W002-TAT14D (Pending case 14 days)">W002-TAT14D (Pending case 14 days)</option>
                         <option value="W003-TAT5D (Pending case 5 days)">W003-TAT5D (Pending case 5 days)</option>
                         <option value="W004-KCI">W004-KCI</option>
-                        <option value="W005-Finish Repair">W005-Finish Repair</option>
-                        <option value="W006-Rerepair">W006-Rerepair</option>
-                        <option value="W007-OLA">W007-OLA</option>
+                        <option value="W005-FR (Finish Repair)">W005-FR (Finish Repair)</option>
 
                     </select>
 
@@ -415,20 +412,12 @@
                                                         W004-KCI
                                                     </option>
 
-                                                    <option value="W005-Finish Repair"
-                                                        {{ $item->jenis_monitoring=='W005-Finish Repair' ? 'selected' : '' }}>
-                                                        W005-Finish Repair
+                                                    <option value="W005-FR (Finish Repair)"
+                                                        {{ $item->jenis_monitoring=='W005-FR (Finish Repair)' ? 'selected' : '' }}>
+                                                        W005-FR (Finish Repair)
                                                     </option>
 
-                                                    <option value="W006-Rerepair"
-                                                        {{ $item->jenis_monitoring=='W006-Rerepair' ? 'selected' : '' }}>
-                                                        W006-Rerepair
-                                                    </option>
-
-                                                    <option value="W007-OLA"
-                                                        {{ $item->jenis_monitoring=='W007-OLA' ? 'selected' : '' }}>
-                                                        W007-OLA
-                                                    </option>
+                                                    
 
                                                 </select>
 

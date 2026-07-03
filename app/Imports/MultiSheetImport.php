@@ -47,7 +47,7 @@ class MultiSheetImport implements WithMultipleSheets
                     ),
                 ];
 
-            case 'W005-Finish Repair':
+            case 'W005-FR (Finish Repair)':
                 return [
                     'Sheet1' => new FinishRepairImport(
                         $this->kodeUpload

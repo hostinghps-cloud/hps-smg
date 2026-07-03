@@ -44,6 +44,13 @@ class ImportController extends Controller
         if ($request->jenis_upload == '002-PART') {
             DB::table('part_datas')->delete();
         }
+        if ($request->jenis_upload == 'W004-KCI') {
+            DB::table('kci')->delete();
+        }
+
+        if ($request->jenis_upload == 'W005-FR (Finish Repair)') {
+            DB::table('finish_repair')->delete();
+        }
 
         // 🔥 SIMPAN HISTORY / BATCH
         UploadBatch::create([
@@ -437,6 +444,138 @@ class ImportController extends Controller
 
 
             $data = $query->get();
+        }
+        // KCI  //
+        elseif ($request->jenis_upload == 'W004-KCI') {
+
+            $query = DB::table('kci')
+                ->select(
+                    DB::raw('LEFT(case_id,3) as kode_company'),
+                    'company_name'
+                )
+                ->whereNull('sent_at')
+                ->groupBy(
+                    DB::raw('LEFT(case_id,3)'),
+                    'company_name'
+                );
+
+            // FILTER BATCH
+            if ($request->kode_upload) {
+
+                $query->where(
+                    'kode_upload',
+                    $request->kode_upload
+                );
+            }
+
+            // FILTER KODE COMPANY
+            if ($request->kode_company) {
+
+                $query->where(
+                    DB::raw('LEFT(case_id,3)'),
+                    'like',
+                    '%' . $request->kode_company . '%'
+                );
+            }
+
+            // FILTER CASE ID
+            if ($request->case_id) {
+
+                $query->where(
+                    'case_id_manual',
+                    'like',
+                    '%' . $request->case_id . '%'
+                );
+            }
+
+            // FILTER AGING
+            if ($request->filled('aging_filter')) {
+
+                $filter = trim($request->aging_filter);
+
+                if (preg_match('/^(>=|<=|>|<|=)\s*(\d+)$/', $filter, $match)) {
+
+                    $query->where(
+                        'aging',
+                        $match[1],
+                        (int) $match[2]
+                    );
+                }
+            }
+
+
+            $data = $query
+                ->groupBy(
+                    DB::raw('LEFT(case_id,3)'),
+                    'company_name'
+                )
+                ->get();
+        }
+                // Finish Repair  //
+        elseif ($request->jenis_upload == 'W005-FR (Finish Repair)') {
+
+            $query = DB::table('finish_repair')
+                ->select(
+                    DB::raw('LEFT(case_id,3) as kode_company'),
+                    'company_name'
+                )
+                ->whereNull('sent_at')
+                ->groupBy(
+                    DB::raw('LEFT(case_id,3)'),
+                    'company_name'
+                );
+
+            // FILTER BATCH
+            if ($request->kode_upload) {
+
+                $query->where(
+                    'kode_upload',
+                    $request->kode_upload
+                );
+            }
+
+            // FILTER KODE COMPANY
+            if ($request->kode_company) {
+
+                $query->where(
+                    DB::raw('LEFT(case_id,3)'),
+                    'like',
+                    '%' . $request->kode_company . '%'
+                );
+            }
+
+            // FILTER CASE ID
+            if ($request->case_id) {
+
+                $query->where(
+                    'case_id_manual',
+                    'like',
+                    '%' . $request->case_id . '%'
+                );
+            }
+
+            // FILTER AGING
+            if ($request->filled('aging_filter')) {
+
+                $filter = trim($request->aging_filter);
+
+                if (preg_match('/^(>=|<=|>|<|=)\s*(\d+)$/', $filter, $match)) {
+
+                    $query->where(
+                        'aging',
+                        $match[1],
+                        (int) $match[2]
+                    );
+                }
+            }
+
+
+            $data = $query
+                ->groupBy(
+                    DB::raw('LEFT(case_id,3)'),
+                    'company_name'
+                )
+                ->get();
         }
         return view('bulk', compact(
             'data',

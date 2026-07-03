@@ -61,7 +61,7 @@ class FinishRepairImport implements ToCollection
             FinishRepair::create([
 
     
-                'jenis_monitoring' => 'W005-Finish Repair',
+                'jenis_monitoring' => 'W005-FR (Finish Repair)',
                 'kode_upload' => $this->kodeUpload,
 
                 'case_id' => $data['case id'] ?? null,

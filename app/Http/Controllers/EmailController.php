@@ -140,6 +140,75 @@ class EmailController extends Controller
                     return $row;
                 });
 
+            // KCI
+            $kciQuery = DB::table('kci')
+                ->select(
+                    'case_id',
+                    'count',
+                    'company_name',
+                    'aging',
+                    'customer_name',
+                    'case_status',
+                    'ce_name',
+                    'company_city'
+                )
+                ->where(DB::raw('LEFT(case_id,3)'), $kodeCompany)
+                ->whereNull('sent_at');
+
+            // FILTER AGING KCI
+            if ($request->filled('aging_filter')) {
+                $filter = trim($request->aging_filter);
+
+                if (preg_match('/^(>=|<=|>|<|=)\s*(\d+(\.\d+)?)$/', $filter, $match)) {
+                    $kciQuery->where(
+                        'aging',
+                        $match[1],
+                        (float) $match[2]
+                    );
+                }
+            }
+
+            $kciRows = $kciQuery
+                ->orderByDesc('aging')
+                ->get();
+
+            // Finish Repair
+            $finishrepairQuery = DB::table('finish_repair')
+                ->select(
+                    'case_id',
+                    'count',
+                    'company_name',
+                    'aging',
+                    'customer_name',
+                    'case_status',
+                    'ce_name',
+                    'company_city'
+                )
+                ->where(DB::raw('LEFT(case_id,3)'), $kodeCompany)
+                ->whereNull('sent_at');
+
+            // FILTER AGING Finish Repair
+            if ($request->filled('aging_filter')) {
+                $filter = trim($request->aging_filter);
+
+                if (preg_match('/^(>=|<=|>|<|=)\s*(\d+(\.\d+)?)$/', $filter, $match)) {
+                    $finishrepairQuery->where(
+                        'aging',
+                        $match[1],
+                        (float) $match[2]
+                    );
+                }
+            }
+
+            $finishrepairRows = $finishrepairQuery
+                ->orderByDesc('aging')
+                ->get();
+
+
+            $emailMaster = DB::table('email_masters')
+                ->where('kode_company', $kodeCompany)
+                ->first();
+
 
             $companyName = $emailMaster->company_name
                 ?? $kodeCompany;
@@ -152,6 +221,8 @@ class EmailController extends Controller
                 return (float) $row->aging >= 5;
             });
             $pendingAbove14Rows = $pendingCase14dRows;
+            $kciRows = $kciRows;
+
 
             $footer = DB::table('footer_masters')->where('id', $request->footer_id)->first();
             $body = $template->body;
@@ -165,6 +236,8 @@ class EmailController extends Controller
                     'pendingBelow5Rows' => $pendingBelow5Rows,
                     'pendingAbove5Rows' => $pendingAbove5Rows,
                     'pendingAbove14Rows' => $pendingAbove14Rows,
+                    'kciRows' => $kciRows,
+                    'finishrepairRows' => $finishrepairRows,
                     'showTable' => true,
                     'footer' => $footerHtml,
                 ]
@@ -182,6 +255,10 @@ class EmailController extends Controller
             $isPending14d =
                 str_contains($jenisMonitoring, '14day') ||
                 str_contains($jenisMonitoring, 'tat14');
+            $iskci = str_contains($jenisMonitoring, 'kci');
+            $isfinishrepair =
+                str_contains($jenisMonitoring, 'finish repair') ||
+                str_contains($jenisMonitoring, 'finishrepair');
             // 2. Siapkan array untuk menampung teks
             $totalArray = [];
 
@@ -195,6 +272,12 @@ class EmailController extends Controller
 
             if ($isPending14d) {
                 $totalArray[] = 'Total Pending 14D : ' . $pendingCase14dRows->count();
+            }
+            if ($iskci) {
+                $totalArray[] = 'Total Case KCI : ' . $kciRows->count();
+            }
+            if ($isfinishrepair) {
+                $totalArray[] = 'Total Case Finish Repair : ' . $finishrepairRows->count();
             }
 
             // 3. Gabungkan teks (Jika namanya tidak mengandung kata wip/pending, tampilkan keduanya sebagai fallback)
@@ -390,6 +473,70 @@ class EmailController extends Controller
                     return $row;
                 });
 
+            // KCI
+            $kciQuery = DB::table('kci')
+                ->select(
+                    'case_id',
+                    'count',
+                    'company_name',
+                    'aging',
+                    'customer_name',
+                    'case_status',
+                    'ce_name',
+                    'company_city'
+                )
+                ->where(DB::raw('LEFT(case_id,3)'), $kodeCompany)
+                ->whereNull('sent_at');
+
+            // FILTER AGING KCI
+            if ($request->filled('aging_filter')) {
+                $filter = trim($request->aging_filter);
+
+                if (preg_match('/^(>=|<=|>|<|=)\s*(\d+(\.\d+)?)$/', $filter, $match)) {
+                    $kciQuery->where(
+                        'aging',
+                        $match[1],
+                        (float) $match[2]
+                    );
+                }
+            }
+
+            $kciRows = $kciQuery
+                ->orderByDesc('aging')
+                ->get();
+
+            // Finish Repair
+            $finishrepairQuery = DB::table('finish_repair')
+                ->select(
+                    'case_id',
+                    'count',
+                    'company_name',
+                    'aging',
+                    'customer_name',
+                    'case_status',
+                    'ce_name',
+                    'company_city'
+                )
+                ->where(DB::raw('LEFT(case_id,3)'), $kodeCompany)
+                ->whereNull('sent_at');
+
+            // FILTER AGING Finish Repair
+            if ($request->filled('aging_filter')) {
+                $filter = trim($request->aging_filter);
+
+                if (preg_match('/^(>=|<=|>|<|=)\s*(\d+(\.\d+)?)$/', $filter, $match)) {
+                    $finishrepairQuery->where(
+                        'aging',
+                        $match[1],
+                        (float) $match[2]
+                    );
+                }
+            }
+
+            $finishrepairRows = $finishrepairQuery
+                ->orderByDesc('aging')
+                ->get();
+
             $pendingAbove14Rows = $pendingCase14dRows->filter(function ($row) {
                 return (float) $row->aging >= 14;
             });
@@ -409,6 +556,7 @@ class EmailController extends Controller
             $pendingAbove5Rows = $pendingCase5dRows->filter(function ($row) {
                 return (float) $row->aging >= 5;
             });
+             $kciRows = $kciRows;
 
             // Sekarang aman, tidak akan menimbulkan Undefined Variable
             $companyName = $emailMaster->company_name;
@@ -431,6 +579,8 @@ class EmailController extends Controller
                     'pendingBelow5Rows' => $pendingBelow5Rows,
                     'pendingAbove5Rows' => $pendingAbove5Rows,
                     'pendingAbove14Rows' => $pendingAbove14Rows,
+                    'kciRows' => $kciRows,
+                    'finishrepairRows' => $finishrepairRows,
                     'showTable' => true,
                     'footer' => nl2br($footer->footer_html ?? ''),
                 ]
@@ -566,6 +716,53 @@ class EmailController extends Controller
             $updatePending14Query->update([
                 'sent_at' => now(),
             ]);
+
+             // UPDATE KCI
+            $updatekciQuery = DB::table('kci')
+                ->where('case_id', 'like', $kodeCompany . '%')
+                ->whereNull('sent_at');
+
+            if ($request->filled('aging_filter')) {
+
+                $filter = trim($request->aging_filter);
+
+                if (preg_match('/^(>=|<=|>|<|=)\s*(\d+(\.\d+)?)$/', $filter, $match)) {
+
+                    $updatekciQuery->where(
+                        'aging',
+                        $match[1],
+                        (float) $match[2]
+                    );
+                }
+            }
+
+            $updatekciQuery->update([
+                'sent_at' => now(),
+            ]);
+
+            // UPDATE Finish Repair
+            $updatefinishrepairQuery = DB::table('finish_repair')
+                ->where('case_id', 'like', $kodeCompany . '%')
+                ->whereNull('sent_at');
+
+            if ($request->filled('aging_filter')) {
+
+                $filter = trim($request->aging_filter);
+
+                if (preg_match('/^(>=|<=|>|<|=)\s*(\d+(\.\d+)?)$/', $filter, $match)) {
+
+                    $updatefinishrepairQuery->where(
+                        'aging',
+                        $match[1],
+                        (float) $match[2]
+                    );
+                }
+            }
+
+            $updatefinishrepairQuery->update([
+                'sent_at' => now(),
+            ]);
+
             // 4. Simpan log email
             DB::table('email_logs')->insert([
                 'kode_company' => $kodeCompany,
@@ -581,7 +778,6 @@ class EmailController extends Controller
                 'created_at' => now(),
                 'updated_at' => now(),
             ]);
-
         }
         return back()->with('success', 'Email berhasil dikirim');
     }

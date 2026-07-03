@@ -16,6 +16,28 @@ class PendingCaseTat5dImport implements ToCollection
         $this->kodeUpload = $kodeUpload;
     }
 
+    private function formatDate($value)
+{
+    if (empty($value)) {
+        return null;
+    }
+
+    try {
+
+        // Jika format Excel (angka)
+        if (is_numeric($value)) {
+            return Date::excelToDateTimeObject($value)
+                ->format('Y-m-d');
+        }
+
+        // Jika format text
+        return date('Y-m-d', strtotime($value));
+
+    } catch (\Exception $e) {
+        return null;
+    }
+}
+
     public function collection(Collection $rows)
     {
         $rows->skip(1)->each(function ($row) {
@@ -26,39 +48,44 @@ class PendingCaseTat5dImport implements ToCollection
 
             PendingCaseTat5d::create([
 
-                'jenis' => 'W003-TAT5D (Pending case 5 days)',
-                'kode_upload' => $this->kodeUpload,
+    'jenis_monitoring' => 'W003-TAT5D (Pending case 5 days)',
+    'kode_upload' => $this->kodeUpload,
 
-                'case_id' => $row[0] ?? null,
-                'received_date' =>
-                    !empty($row[1])
-                    ? Date::excelToDateTimeObject($row[1])->format('Y-m-d')
-                    : null,
+    'case_id' => $row[0] ?? null,
 
-             
-                'company_name' => $row[2] ?? null,
-                'aging' => $row[3] ?? null,
-                'case_status' => $row[4] ?? null,
-                'ce_name' => $row[5] ?? null,
-                'company_city' => $row[6] ?? null,
-                'part_request_date' =>
-                    !empty($row[7])
-                    ? Date::excelToDateTimeObject($row[7])->format('Y-m-d')
-                    : null,
-                'so_no' => $row[8] ?? null,
-                'eta_date' =>
-                    !empty($row[9])
-                    ? Date::excelToDateTimeObject($row[9])->format('Y-m-d')
-                    : null,
-                'part_in_date' =>
-                    !empty($row[10])
-                    ? Date::excelToDateTimeObject($row[10])->format('Y-m-d')
-                    : null,
-                'product_no' => $row[11] ?? null,
-                'product_name' => $row[11] ?? null,
-               
+    'received_date' => $this->formatDate($row[2] ?? null),
 
-            ]);
+    'start_repair_date' => $this->formatDate($row[3] ?? null),
+
+    'company_name' => $row[4] ?? null,
+
+    'aging' => is_numeric($row[5] ?? null)
+        ? round((float)$row[5],1)
+        : null,
+
+    'case_status' => $row[8] ?? null,
+
+    'ce_name' => $row[9] ?? null,
+
+    'company_city' => $row[10] ?? null,
+
+    'part_name' => $row[11] ?? null,
+
+    'hp_part_no' => $row[12] ?? null,
+
+    'part_request_date' => $this->formatDate($row[13] ?? null),
+
+    'so_no' => $row[14] ?? null,
+
+    'eta_date' => $this->formatDate($row[15] ?? null),
+
+    'part_in_date' => $this->formatDate($row[16] ?? null),
+
+    'product_no' => $row[17] ?? null,
+
+    'product_name' => $row[18] ?? null,
+
+]);
         });
     }
 

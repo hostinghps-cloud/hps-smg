@@ -38,12 +38,12 @@
                                 W003-TAT5D (Pending case 5 days)
                             </option>
 
-                            <option disabled style="color:#999;">
+                            <option value= "W004-KCI" {{ request('jenis_upload') == 'W004-KCI' ? 'selected' : '' }}>
                                 W004-KCI
                             </option>
 
-                            <option disabled style="color:#999;">
-                                W005-Finish Repair (FR)
+                            <option value="W005-FR (Finish Repair)" {{ request('jenis_upload') == 'W005-FR (Finish Repair)' ? 'selected' : '' }}>
+                                W005-FR (Finish Repair)
                             </option>
                             
                           
@@ -54,18 +54,18 @@
                     <div class="col-md-3">
                         <label class="form-label">Batch</label>
                         <select
-    name="kode_upload"
-    id="kode_upload"
-    class="form-select">
+                            name="kode_upload"
+                            id="kode_upload"
+                            class="form-select">
 
-    <option value="">Semua Batch</option>
+                            <option value="">Semua Batch</option>
 
-    @foreach($batches as $batch)
-        <option value="{{ $batch->kode_upload }}">
-            {{ $batch->kode_upload }}
-        </option>
-    @endforeach
-</select>
+                            @foreach($batches as $batch)
+                                <option value="{{ $batch->kode_upload }}">
+                                    {{ $batch->kode_upload }}
+                                </option>
+                            @endforeach
+                        </select>
                     </div>
 
                     <!-- Aging -->
@@ -245,65 +245,77 @@
                                 </td>
             
                                
-                                    @php
+                                   @php
 
-switch (request('jenis_upload')) {
+                                    switch (request('jenis_upload')) {
 
-    case 'W002-TAT14D (Pending case 14 days)':
+                                        case 'W002-TAT14D (Pending case 14 days)':
 
-        $tableName = 'pending_14d';
-        $fieldCase = 'case_id';
-        break;
+                                            $tableName = 'pending_14d';
+                                            $fieldCase = 'case_id';
+                                            break;
 
-    case 'W003-TAT5D (Pending case 5 days)':
+                                        case 'W003-TAT5D (Pending case 5 days)':
 
-        $tableName = 'pending';
-        $fieldCase = 'case_id';
-        break;
+                                            $tableName = 'pending';
+                                            $fieldCase = 'case_id';
+                                            break;
 
-    default:
+                                        case 'W004-KCI':
 
-        $tableName = 'wip_datas';
-        $fieldCase = 'case_id_manual';
-        break;
-}
+                                            $tableName = 'kci';
+                                            $fieldCase = 'case_id';
+                                            break;
 
-$totalCaseQuery = DB::table($tableName)
-    ->where(
-        DB::raw("LEFT($fieldCase,3)"),
-        $item->kode_company
-    )
-    ->whereNull('sent_at');
-    if(request()->filled('kode_upload')){
-    $totalCaseQuery->where(
-        'kode_upload',
-        request('kode_upload')
-    );
-}
+                                        case 'W005-FR (Finish Repair)':
 
-if (request()->filled('aging_filter')) {
+                                            $tableName = 'finish_repair';
+                                            $fieldCase = 'case_id';
+                                            break;
 
-    $filter = trim(request('aging_filter'));
+                                        default:
 
-    if (
-        preg_match(
-            '/^(>=|<=|>|<|=)\s*(\d+(\.\d+)?)$/',
-            $filter,
-            $match
-        )
-    ) {
+                                            $tableName = 'wip_datas';
+                                            $fieldCase = 'case_id_manual';
+                                            break;
+                                    }
 
-        $totalCaseQuery->where(
-            'aging',
-            $match[1],
-            (float) $match[2]
-        );
-    }
-}
+                                    $totalCaseQuery = DB::table($tableName)
+                                        ->where(
+                                            DB::raw("LEFT($fieldCase,3)"),
+                                            $item->kode_company
+                                        )
+                                        ->whereNull('sent_at');
+                                        if(request()->filled('kode_upload')){
+                                        $totalCaseQuery->where(
+                                            'kode_upload',
+                                            request('kode_upload')
+                                        );
+                                    }
 
-$totalCase = $totalCaseQuery->count();
+                                    if (request()->filled('aging_filter')) {
 
-@endphp
+                                        $filter = trim(request('aging_filter'));
+
+                                        if (
+                                            preg_match(
+                                                '/^(>=|<=|>|<|=)\s*(\d+(\.\d+)?)$/',
+                                                $filter,
+                                                $match
+                                            )
+                                        ) {
+
+                                            $totalCaseQuery->where(
+                                                'aging',
+                                                $match[1],
+                                                (float) $match[2]
+                                            );
+                                        }
+                                    }
+
+                                    $totalCase = $totalCaseQuery->count();
+
+                                    @endphp
 
                             
 
@@ -358,17 +370,17 @@ $totalCase = $totalCaseQuery->count();
                                             @php
 
                                            $caseQuery = DB::table($tableName)
-    ->where(
-        DB::raw("LEFT($fieldCase,3)"),
-        $item->kode_company
-    )
-    ->whereNull('sent_at');
-    if(request()->filled('kode_upload')){
-    $caseQuery->where(
-        'kode_upload',
-        request('kode_upload')
-    );
-}
+                                                ->where(
+                                                    DB::raw("LEFT($fieldCase,3)"),
+                                                    $item->kode_company
+                                                )
+                                                ->whereNull('sent_at');
+                                                if(request()->filled('kode_upload')){
+                                                $caseQuery->where(
+                                                    'kode_upload',
+                                                    request('kode_upload')
+                                                );
+                                            }
 
                                             /*
                                             |--------------------------------------------------------------------------
@@ -396,12 +408,12 @@ $totalCase = $totalCaseQuery->count();
                                             }
 
                                             $cases = $caseQuery
-    ->orderByDesc('aging')
-    ->get([
-        $fieldCase,
-        'aging',
-        'case_status'
-    ]);
+                                                ->orderByDesc('aging')
+                                                ->get([
+                                                    $fieldCase,
+                                                    'aging',
+                                                    'case_status'
+                                                ]);
 
                                             $totalCase = $cases->count();
 
@@ -893,12 +905,12 @@ $totalCase = $totalCaseQuery->count();
                                     W005-Finish Repair
                                 </option>
 
-                                <option value="W006-Rerepair">
-                                    W006-Rerepair
+                                <option value="W004-KCI">
+                                    W004-KCI
                                 </option>
 
-                                <option value="W007-OLA">
-                                    W007-OLA
+                                <option value="W005-Finish Repair">
+                                    W005-Finish Repair
                                 </option>
 
                             </select>
@@ -1117,11 +1129,8 @@ $totalCase = $totalCaseQuery->count();
 
                 'W004-KCI': 'W004-KCI',
 
-                'W005-Finish Repair (FR)': 'W005-Finish Repair (FR)',
+                'W005-FR (Finish Repair)': 'W005-FR (Finish Repair)',
 
-                'W006-Rerepair (RRP)': 'W006-Rerepair (RRP)',
-
-                'W007-OLA': 'W007-OLA'
 
             };
 

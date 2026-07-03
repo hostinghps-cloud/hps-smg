@@ -54,11 +54,11 @@
                                 W003-TAT5D (Pending case 5 days)
                             </option>
 
-                            <option disabled style="color:#999;">
+                            <option value="W004-KCI">
                                 W004-KCI
                             </option>
 
-                            <option disabled style="color:#999;">
+                            <option value="W005-FR (Finish Repair)">
                                 W005-FR (Finish Repair)
                             </option>
 
@@ -315,17 +315,10 @@
                 kode = 'KCI';
                 break;
 
-            case 'W005-Finish Repair (FR)':
+            case 'W005-FR (Finish Repair)':
                 kode = 'FR';
                 break;
 
-            case 'W006-Rerepair (RRP)':
-                kode = 'RRP';
-                break;
-
-            case 'W007-OLA':
-                kode = 'OLA';
-                break;
         }
 
         document.getElementById('kodeUpload').value =
@@ -397,6 +390,18 @@
                         return 'pending14d';
                     }
 
+                    if (
+                        jenisUpload === 'W004-KCI'
+                    ) {
+                        return 'kci';
+                     }
+                    if (
+                        jenisUpload === 'W005-FR (Finish Repair)'
+                    ) {
+                        return 'finishrepair';
+                        
+                    }
+
                     return null;
                 }
 
@@ -427,18 +432,25 @@
                         "Jenis",
                         "Batch",
                         "Case ID",
+                        "Count",
                         "Received Date",
+                        "Start repair date",
                         "Company Name",
                         "Aging",
+                        "Customer name",
+                        "Customer company Hierarchy",
                         "Case Status",
                         "CE Name",
                         "Company City",
+                        "Part name",
+                        "HP part no.",
                         "Part Request Date",
                         "SO No",
                         "ETA Date",
                         "Part In Date",
                         "Product No",
-                        "Product Name"
+                        "Product Name",
+                        "Toatal Case >5d"
                     ],
 
                     pending14d: [
@@ -462,7 +474,37 @@
                         "Product Type",
                         "Vendor part no.",
                         "CE Name"
+                    ],
+                    kci: [
+                        "No",
+                        "Jenis",
+                        "Batch",
+                        "Case ID",
+                        "Count",
+                        "Company Name",
+                        "Aging",
+                        "Customer Name",
+                        "Customer company Hierarchy - Customer company",
+                        "Case Status",
+                        "CE Name",
+                        "Company City"
+                    ],
+                    
+                    finishrepair: [
+                        "No",
+                        "Jenis",
+                        "Batch",
+                        "Case ID",
+                        "Count",
+                        "Company Name",
+                        "Aging",
+                        "Customer Name",
+                        "Customer company Hierarchy - Customer company",
+                        "Case Status",
+                        "CE Name",
+                        "Company City"
                     ]
+
 
                 };
 
@@ -543,14 +585,14 @@
                     // ======================================
                     if (type === 'pending5d') {
 
-                        for (let i = 0; i <= 15; i++) {
+                        for (let i = 0; i <= 19; i++) {
 
                             let td = document.createElement('td');
 
                             let value = row[i] ?? '';
 
                             // FORMAT DATE
-                            if ([1, 2, 10, 12, 13].includes(i)) {
+                            if ([2, 3, 13, 15, 16].includes(i)) {
 
                                 if (typeof value === 'number') {
 
@@ -627,6 +669,111 @@
                             tr.appendChild(td);
                         }
                     }
+                    else if (type === 'kci') {
+
+                        // Mapping sesuai HEADER EXCEL
+                        const map = [
+                            0, // Case ID
+                            1, // Count
+                            2, // Company Name
+                            3, // Aging
+                            4, // Customer name
+                            5, // Customer company Hierarchy - Customer company
+                            6, // Case status
+                            7, // CE name
+                            8, // Company city
+                            
+                        ];
+
+                        map.forEach((excelIndex, indexTable) => {
+
+                            let td = document.createElement('td');
+
+                            let value = row[excelIndex] ?? '';
+
+                            
+
+                            // AGING
+                            if (indexTable === 3) {
+
+                                let aging = parseFloat(value);
+
+                                if (!isNaN(aging)) {
+
+                                    aging = Math.round(aging);
+
+                                    value = aging;
+
+                                    if (aging >= 5) {
+
+                                        td.style.backgroundColor = '#fecaca';
+                                        td.style.fontWeight = 'bold';
+
+                                    }
+
+                                }
+
+                            }
+
+                            td.innerText = value;
+
+                            tr.appendChild(td);
+
+                        });
+
+                    }
+                    else if (type === 'finishrepair') {
+
+                        // Mapping sesuai HEADER EXCEL
+                        const map = [
+                            0, // Case ID
+                            1, // Count
+                            2, // Company Name
+                            3, // Aging
+                            4, // Customer name
+                            5, // Customer company Hierarchy - Customer company
+                            6, // Case status
+                            7, // CE name
+                            8, // Company city
+                            
+                        ];
+
+                        map.forEach((excelIndex, indexTable) => {
+
+                            let td = document.createElement('td');
+
+                            let value = row[excelIndex] ?? '';
+
+                            
+
+                            // AGING
+                            if (indexTable === 3) {
+
+                                let aging = parseFloat(value);
+
+                                if (!isNaN(aging)) {
+
+                                    aging = Math.round(aging);
+
+                                    value = aging;
+
+                                    if (aging >= 5) {
+
+                                        td.style.backgroundColor = '#fecaca';
+                                        td.style.fontWeight = 'bold';
+
+                                    }
+
+                                }
+
+                            }
+
+                            td.innerText = value;
+
+                            tr.appendChild(td);
+
+                        });
+            }
                     // ======================================
                     // PREVIEW WIP
                     // ======================================
