@@ -1,6 +1,6 @@
 <div align="center">
 
-# 📧 CRM EMAIL
+# 📧 Master Hub System
 
 ### Sistem Monitoring & Pengiriman Email Otomatis untuk Partner
 
