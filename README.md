@@ -78,10 +78,9 @@ Fitur email meliputi:
 Beberapa monitoring yang tersedia:
 
 - WIP
-- Pending Case
 - Pending Case > 5 Days
 - Pending Case > 14 Days
-- TAT Monitoring
+- KCI
 - Finish Repair
 
 ---
