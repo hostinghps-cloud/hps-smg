@@ -249,13 +249,11 @@ Lalu tampilkan di README:
 
 ![Upload](images/upload.png)
 
-## Email Preview
+## Email BC
 
-![Preview](images/email-preview.png)
+![Preview](images/bcemail.png)
 
-## Send Email
 
-![Send](images/send-email.png)
 ```
 
 ---
