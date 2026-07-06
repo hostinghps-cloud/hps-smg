@@ -30,7 +30,7 @@
                 <br>
 
                 <div class="row">
-                    
+
 
                     <!-- JENIS -->
                     <div class="col-md-4 mb-3">
@@ -62,7 +62,7 @@
                                 W005-FR (Finish Repair)
                             </option>
 
-                           
+
 
                         </select>
                     </div>
@@ -347,9 +347,13 @@
                     type: 'array'
                 });
 
-                // 🔥 CARI SHEET WIP
-                let sheetName = workbook.SheetNames.find(
-                    s => s.toUpperCase().includes('WIP')
+                // Cari sheet tanpa membedakan huruf besar/kecil
+                const keywords = ['parts', 'part'];
+
+                let sheetName = workbook.SheetNames.find(sheet =>
+                    keywords.some(keyword =>
+                        sheet.toLowerCase().includes(keyword)
+                    )
                 );
 
                 // 🔥 JIKA TIDAK ADA → SHEET PERTAMA
@@ -394,12 +398,12 @@
                         jenisUpload === 'W004-KCI'
                     ) {
                         return 'kci';
-                     }
+                    }
                     if (
                         jenisUpload === 'W005-FR (Finish Repair)'
                     ) {
                         return 'finishrepair';
-                        
+
                     }
 
                     return null;
@@ -422,9 +426,7 @@
                         "HP Part No",
                         "SO No",
                         "AWB No Part Return",
-                        "Part In Date",
-                        "Today",
-                        "Aging"
+                        "Part In Date"
                     ],
 
                     pending5d: [
@@ -489,7 +491,7 @@
                         "CE Name",
                         "Company City"
                     ],
-                    
+
                     finishrepair: [
                         "No",
                         "Jenis",
@@ -534,24 +536,32 @@
                 let tbody = document.createElement('tbody');
 
                 // 🔥 SKIP HEADER EXCEL
-                let totalCase = excelData.slice(1).filter(row => row.length > 0).length;
+                // 🔥 Tentukan baris awal sesuai jenis upload
+                const previewRows = (type === 'wip') ?
+                    excelData.slice(4) // WIP mulai dari baris Excel ke-4
+                    :
+                    excelData.slice(1); // Jenis lain tetap mulai dari baris ke-2
+
+                // Total Case
+                let totalCase = previewRows.filter(row => row.length > 0).length;
 
                 document.getElementById('totalCaseText').innerText =
                     'Total Case : ' + totalCase;
 
-                excelData.slice(1).forEach((row, index) => {
+                // Preview Data
+                previewRows.forEach((row, index) => {
 
                     if (row.length === 0) return;
 
                     let tr = document.createElement('tr');
+
                     // 🔥 NOMOR
                     let tdNo = document.createElement('td');
-
                     tdNo.innerText = index + 1;
-
                     tdNo.style.fontWeight = 'bold';
-
                     tr.appendChild(tdNo);
+
+                    // ... kode Anda yang lain tetap ...
 
                     // 🔥 AMBIL JENIS & BATCH
                     let jenisUpload =
@@ -668,8 +678,7 @@
                             td.innerText = value;
                             tr.appendChild(td);
                         }
-                    }
-                    else if (type === 'kci') {
+                    } else if (type === 'kci') {
 
                         // Mapping sesuai HEADER EXCEL
                         const map = [
@@ -682,7 +691,7 @@
                             6, // Case status
                             7, // CE name
                             8, // Company city
-                            
+
                         ];
 
                         map.forEach((excelIndex, indexTable) => {
@@ -691,7 +700,7 @@
 
                             let value = row[excelIndex] ?? '';
 
-                            
+
 
                             // AGING
                             if (indexTable === 3) {
@@ -721,8 +730,7 @@
 
                         });
 
-                    }
-                    else if (type === 'finishrepair') {
+                    } else if (type === 'finishrepair') {
 
                         // Mapping sesuai HEADER EXCEL
                         const map = [
@@ -735,7 +743,7 @@
                             6, // Case status
                             7, // CE name
                             8, // Company city
-                            
+
                         ];
 
                         map.forEach((excelIndex, indexTable) => {
@@ -744,7 +752,7 @@
 
                             let value = row[excelIndex] ?? '';
 
-                            
+
 
                             // AGING
                             if (indexTable === 3) {
@@ -773,57 +781,31 @@
                             tr.appendChild(td);
 
                         });
-            }
+                    }
                     // ======================================
                     // PREVIEW WIP
                     // ======================================
                     else if (type === 'wip') {
 
-                        for (let i = 0; i <= 9; i++) {
+                        const map = [
+                            1, // Case ID
+                            2, // Company Name
+                            4, // Finish Date
+                            6, // Case Status
+                            12, // HP Part No
+                            24, // SO No
+                            28, // AWB No
+                            36 // Part In Date
+                        ];
+                        map.forEach((excelIndex) => {
 
                             let td = document.createElement('td');
-
-                            let value = row[i] ?? '';
-
-                            if (i === 2 || i === 7 || i === 8) {
-
-                                if (typeof value === 'number') {
-
-                                    let date =
-                                        XLSX.SSF.parse_date_code(value);
-
-                                    if (date) {
-
-                                        value =
-                                            String(date.d).padStart(2, '0') + '/' +
-                                            String(date.m).padStart(2, '0') + '/' +
-                                            date.y;
-                                    }
-                                }
-                            }
-
-                            if (i === 9) {
-
-                                value = parseFloat(
-                                    String(value).replace(',', '.')
-                                );
-
-                                if (!isNaN(value)) {
-
-                                    value = value.toFixed(2);
-
-                                    if (value >= 14) {
-
-                                        td.style.backgroundColor = '#fecaca';
-                                        td.style.fontWeight = 'bold';
-                                    }
-                                }
-                            }
+                            let value = row[excelIndex] ?? '';
 
                             td.innerText = value;
-
                             tr.appendChild(td);
-                        }
+
+                        });
 
                     }
 

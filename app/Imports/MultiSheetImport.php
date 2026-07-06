@@ -22,9 +22,7 @@ class MultiSheetImport implements WithMultipleSheets
 
             case 'W001-WIP':
                 return [
-                    'WIP' => new WipImport(
-                        $this->kodeUpload
-                    ),
+                    'Parts' => new WipImport($this->kodeUpload),
                 ];
             case 'W002-TAT14D (Pending case 14 days)':
                 return [

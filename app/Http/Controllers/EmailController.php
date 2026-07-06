@@ -556,7 +556,7 @@ class EmailController extends Controller
             $pendingAbove5Rows = $pendingCase5dRows->filter(function ($row) {
                 return (float) $row->aging >= 5;
             });
-             $kciRows = $kciRows;
+            $kciRows = $kciRows;
 
             // Sekarang aman, tidak akan menimbulkan Undefined Variable
             $companyName = $emailMaster->company_name;
@@ -717,7 +717,7 @@ class EmailController extends Controller
                 'sent_at' => now(),
             ]);
 
-             // UPDATE KCI
+            // UPDATE KCI
             $updatekciQuery = DB::table('kci')
                 ->where('case_id', 'like', $kodeCompany . '%')
                 ->whereNull('sent_at');
@@ -771,8 +771,11 @@ class EmailController extends Controller
                 'company_name' => $companyName,
                 'recipient' => implode(', ', $emails),
                 'total_case' =>
-                $rows->count() +
-                    $pendingCase5dRows->count(),
+                $rows->count()
+                    + $pendingCase5dRows->count()
+                    + $pendingCase14dRows->count()
+                    + $kciRows->count()
+                    + $finishrepairRows->count(),
                 'aging_filter' => $request->aging_filter,
                 'sent_at' => now(),
                 'created_at' => now(),

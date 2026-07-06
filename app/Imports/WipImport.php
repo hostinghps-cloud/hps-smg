@@ -6,8 +6,9 @@ use App\Models\WipData;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
 use Maatwebsite\Excel\Concerns\ToCollection;
+use Maatwebsite\Excel\Concerns\WithHeadingRow;
 
-class WipImport implements ToCollection
+class WipImport implements ToCollection, WithHeadingRow
 {
     protected $kodeUpload;
 
@@ -16,39 +17,90 @@ class WipImport implements ToCollection
         $this->kodeUpload = $kodeUpload;
     }
 
+    /**
+     * Header berada di baris ke-4 sheet Parts.
+     */
+    public function headingRow(): int
+    {
+        return 4;
+    }
+
     public function collection(Collection $rows)
     {
-        foreach ($rows as $index => $row) {
+        foreach ($rows as $row) {
 
-            if ($index == 0) {
+            // Skip jika Case ID kosong
+            if (empty($row['case_id'])) {
                 continue;
             }
 
-            if (empty($row[0])) {
+            $finishDate = !empty($row['finish_date'])
+                ? Carbon::parse($row['finish_date'])
+                : null;
+
+            $partInDate = !empty($row['part_in_date'])
+                ? Carbon::parse($row['part_in_date'])
+                : null;
+
+            // Warranty Status harus In warranty
+            $statusWarranty = trim($row['warranty_status'] ?? '');
+
+            if (
+                strcasecmp($statusWarranty, 'In Warranty') != 0 &&
+                strcasecmp($statusWarranty, 'Care Pack') != 0
+            ) {
                 continue;
             }
+
+            // Case Status
+            $status = trim($row['case_status'] ?? '');
+
+            if (
+                stripos($status, 'Close Repair') === false &&
+                stripos($status, 'Close Cancel') === false &&
+                stripos($status, 'Finish') === false
+            ) {
+                continue;
+            }
+            // HP Part No, jika kosong gunakan Vendor Part No
+            $partNo = !empty($row['hp_part_no'])
+                ? $row['hp_part_no']
+                : ($row['vendor_part_no'] ?? null);
+
+            if (empty($partNo)) {
+                continue;
+            }
+
+            // SO No wajib ada
+            if (empty($row['so_no'])) {
+                continue;
+            }
+
+            // AWB Return harus kosong
+            if (!empty($row['awb_no_part_return'])) {
+                continue;
+            }
+
+            // Part In Date wajib ada
+            if (!$partInDate) {
+                continue;
+            }
+
+            $aging = $partInDate->diffInDays(Carbon::today());
 
             WipData::create([
-                'kode_upload' => $this->kodeUpload,
-                'jenis_monitoring' => 'W001-WIP',
+                'kode_upload'        => $this->kodeUpload,
+                'jenis_monitoring'   => 'W001-WIP',
 
-                'case_id_manual' => $row[0],
-                'company_name' => $row[1],
-
-                'finish_date' => !empty($row[2])
-                    ? Carbon::parse($row[2])
-                    : null,
-
-                'case_status' => $row[3] ?? null,
-                'hp_part_no' => $row[4] ?? null,
-                'so_no' => $row[5] ?? null,
-                'awb_no_part_return' => $row[6] ?? null,
-
-                'part_in_date' => !empty($row[7])
-                    ? Carbon::parse($row[7])
-                    : null,
-
-                'aging' => $row[9] ?? null,
+                'case_id_manual'     => $row['case_id'],
+                'company_name'       => $row['company_name'] ?? null,
+                'finish_date'        => $finishDate,
+                'case_status'        => $row['case_status'],
+                'hp_part_no'         => $partNo,
+                'so_no'              => $row['so_no'],
+                'awb_no_part_return' => $row['awb_no_part_return'],
+                'part_in_date'       => $partInDate,
+                'aging'              => $aging,
             ]);
         }
     }

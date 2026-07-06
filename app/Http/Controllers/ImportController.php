@@ -33,23 +33,24 @@ class ImportController extends Controller
             'jenis_upload' => 'required',
             'kode_upload' => 'required'
         ]);
-        if ($request->jenis_upload == 'W001-WIP') {
-            DB::table('wip_datas')->delete();
+         if ($request->jenis_upload == 'W001-WIP') {
+            DB::table('wip_datas')->truncate();
         }
 
         if ($request->jenis_upload == 'W003-TAT5D (Pending case 5 days)') {
-            DB::table('pending')->delete();
+            DB::table('pending')->truncate();
         }
 
-        if ($request->jenis_upload == '002-PART') {
-            DB::table('part_datas')->delete();
+        if ($request->jenis_upload == 'W002-TAT14D (Pending case 14 days)') {
+            DB::table('pending_14')->truncate();
         }
+
         if ($request->jenis_upload == 'W004-KCI') {
-            DB::table('kci')->delete();
+            DB::table('kci')->truncate();
         }
 
         if ($request->jenis_upload == 'W005-FR (Finish Repair)') {
-            DB::table('finish_repair')->delete();
+            DB::table('finish_repair')->truncate();
         }
 
         // 🔥 SIMPAN HISTORY / BATCH
@@ -254,10 +255,11 @@ class ImportController extends Controller
         // ==========================
         if ($request->jenis_upload == 'W001-WIP') {
 
-            $query = DB::table('wip_datas')
+             $query = DB::table('wip_datas')
                 ->select(
                     DB::raw('LEFT(case_id_manual,3) as kode_company'),
-                    'company_name'
+                    'company_name',
+                    DB::raw('MAX(aging) as max_aging')
                 )
                 ->whereNull('sent_at');
 
@@ -310,6 +312,7 @@ class ImportController extends Controller
                     DB::raw('LEFT(case_id_manual,3)'),
                     'company_name'
                 )
+                ->orderByDesc('max_aging')
                 ->get();
         }
 
