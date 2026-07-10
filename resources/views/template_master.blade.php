@@ -45,6 +45,7 @@
             <div class="modal-content">
 
                 <form
+                    id="addTemplateForm"
                     action="/template-master/store"
                     method="POST">
 
@@ -86,8 +87,8 @@
                                 <option value="W002-TAT14D (Pending case 14 days)">W002-TAT14D (Pending case 14 days)</option>
                                 <option value="W003-TAT5D (Pending case 5 days)">W003-TAT5D (Pending case 5 days)</option>
                                 <option value="W004-KCI">W004-KCI</option>
-                                <option value="W005-FR (Finish Repair)">W005-FR (Finish Repair)</option>
-                                
+                                <option value="W005-Finish Repair">W005-Finish Repair</option>
+                              
                             </select>
 
                         </div>
@@ -140,10 +141,10 @@
 
                             <textarea
                                 name="body"
-                                rows="10"
+                                id="body_add"
                                 class="form-control"
-                                placeholder="Isi template email..."
-                                required></textarea>
+                                placeholder="Isi template email..."></textarea>
+
 
                         </div>
 
@@ -227,7 +228,9 @@
                         <option value="W002-TAT14D (Pending case 14 days)">W002-TAT14D (Pending case 14 days)</option>
                         <option value="W003-TAT5D (Pending case 5 days)">W003-TAT5D (Pending case 5 days)</option>
                         <option value="W004-KCI">W004-KCI</option>
-                        <option value="W005-FR (Finish Repair)">W005-FR (Finish Repair)</option>
+                        <option value="W005-Finish Repair">W005-Finish Repair</option>
+                        <option value="W006-Rerepair">W006-Rerepair</option>
+                        <option value="W007-OLA">W007-OLA</option>
 
                     </select>
 
@@ -355,6 +358,7 @@
                                 <div class="modal-content">
 
                                     <form
+                                         id="editTemplateForm{{ $item->id }}"
                                         action="/template-master/update/{{ $item->id }}"
                                         method="POST">
 
@@ -412,12 +416,20 @@
                                                         W004-KCI
                                                     </option>
 
-                                                    <option value="W005-FR (Finish Repair)"
-                                                        {{ $item->jenis_monitoring=='W005-FR (Finish Repair)' ? 'selected' : '' }}>
-                                                        W005-FR (Finish Repair)
+                                                    <option value="W005-Finish Repair"
+                                                        {{ $item->jenis_monitoring=='W005-Finish Repair' ? 'selected' : '' }}>
+                                                        W005-Finish Repair
                                                     </option>
 
-                                                    
+                                                    <option value="W006-Rerepair"
+                                                        {{ $item->jenis_monitoring=='W006-Rerepair' ? 'selected' : '' }}>
+                                                        W006-Rerepair
+                                                    </option>
+
+                                                    <option value="W007-OLA"
+                                                        {{ $item->jenis_monitoring=='W007-OLA' ? 'selected' : '' }}>
+                                                        W007-OLA
+                                                    </option>
 
                                                 </select>
 
@@ -467,11 +479,10 @@
 
                                                 </label>
 
-                                                <textarea
+                                               <textarea
                                                     name="body"
-                                                    rows="10"
-                                                    class="form-control"
-                                                    required>{{ $item->body }}</textarea>
+                                                    id="body_edit_{{ $item->id }}"
+                                                    class="form-control">{{ $item->body }}</textarea>
 
                                             </div>
 
@@ -555,6 +566,10 @@
 
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+<link href="https://cdn.jsdelivr.net/npm/summernote@0.8.20/dist/summernote-bs5.min.css" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/summernote@0.8.20/dist/summernote-bs5.min.js"></script>
+
 <script>
     document
         .getElementById('filterMonitoring')
@@ -578,5 +593,67 @@
                 });
 
         });
+</script>
+
+<script>
+    /*
+    |--------------------------------------------------------------------------
+    | RICH TEXT EDITOR (SUMMERNOTE) untuk Body Template
+    | Dipasang langsung di atas <textarea name="body">, jadi controller &
+    | database TIDAK berubah sama sekali. Isi textarea otomatis ter-update
+    | tiap kali user mengetik (callback onChange), sehingga saat form
+    | disubmit datanya sudah pasti HTML terbaru dari editor.
+    |--------------------------------------------------------------------------
+    */
+
+    const SUMMERNOTE_TOOLBAR = [
+        ['style', ['style']],
+        ['font', ['bold', 'italic', 'underline', 'clear']],
+        ['fontname', ['fontname']],
+        ['color', ['color']],
+        ['fontsize', ['fontsize']],
+        ['para', ['ul', 'ol', 'paragraph']],
+        ['insert', ['link']],
+        ['view', ['fullscreen', 'codeview']]
+    ];
+
+   function initSummernote(selector) {
+
+        if ($(selector).next('.note-editor').length) {
+            return;
+        }
+
+        $(selector).summernote({
+            height: 250,
+            dialogsInBody: true,
+            disableDragAndDrop: true,
+            toolbar: SUMMERNOTE_TOOLBAR,
+            callbacks: {
+                onChange: function(contents) {
+                    $(selector).val(contents);
+                }
+            }
+        });
+
+    }
+
+    // ===== EDITOR ADD TEMPLATE =====
+    document.getElementById('addTemplateModal')
+        .addEventListener('shown.bs.modal', function() {
+            initSummernote('#body_add');
+        });
+
+    // ===== EDITOR EDIT TEMPLATE (tiap baris) =====
+    document.querySelectorAll('[id^="editModal"]').forEach(function(modalEl) {
+
+        modalEl.addEventListener('shown.bs.modal', function() {
+
+            const textarea = modalEl.querySelector('textarea[name="body"]');
+
+            if (textarea) {
+                initSummernote('#' + textarea.id);
+            }
+        });
+    });
 </script>
 @endsection

@@ -5,11 +5,304 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
-use Illuminate\Support\Facades\Blade;
 use App\Models\EmailTemplate;
+// ★★★ DIUBAH (1/4): "use Illuminate\Support\Facades\Blade;" DIHAPUS dari sini.
+// Sebelumnya dipakai untuk Blade::render($body, [...]) yang menyebabkan ParseError
+// kalau body (dari WYSIWYG) mengandung karakter "&", "<", ">" hasil encode HTML.
 
 class EmailController extends Controller
 {
+    // ★★★ DIUBAH (2/4): 3 method baru di bawah ini (sampai method injectCaseTables)
+    // menggantikan Blade::render() dengan generator tabel HTML pakai PHP biasa. ★★★
+
+    /**
+     * Render satu tabel case menjadi HTML murni (bukan Blade), aman dipakai
+     * bersama body yang berasal dari WYSIWYG (Summernote).
+     *
+     * @param mixed  $rows    Collection data (hasil query)
+     * @param array  $columns ['nama_field_db' => 'Label Kolom', ...] — urutan sesuai urutan tampil
+     * @param array  $options
+     *   - aging_operator  : '>' atau '>=' (default: tidak ada highlight kalau null)
+     *   - aging_threshold : angka pembanding aging
+     *   - date_fields     : ['nama_field' => 'format_carbon'] contoh ['received_date' => 'd-M-Y']
+     *   - empty_text      : teks saat data kosong (kalau null, tabel tidak ditampilkan sama sekali)
+     */
+    private function renderCaseTable($rows, array $columns, array $options = []): string
+    {
+        $agingOperator   = $options['aging_operator'] ?? null;
+        $agingThreshold  = $options['aging_threshold'] ?? null;
+        $dateFields      = $options['date_fields'] ?? [];
+        $emptyText       = $options['empty_text'] ?? null;
+
+        if ((!$rows || $rows->isEmpty())) {
+            if ($emptyText === null) {
+                return '';
+            }
+        }
+
+        $html = '<table border="1" cellpadding="4" cellspacing="0" width="100%" style="border-collapse:collapse; font-size:11px;">';
+
+        $html .= '<thead><tr style="background-color:#d9d9d9; text-align:center;"><th>No</th>';
+
+        foreach ($columns as $label) {
+            $html .= '<th>' . e($label) . '</th>';
+        }
+
+        $html .= '</tr></thead><tbody>';
+
+        if (!$rows || $rows->isEmpty()) {
+
+            $html .= '<tr><td colspan="' . (count($columns) + 1) . '" align="center">'
+                . e($emptyText) . '</td></tr>';
+
+        } else {
+
+            $no = 1;
+
+            foreach ($rows as $row) {
+
+                $html .= '<tr>';
+                $html .= '<td align="center">' . $no++ . '</td>';
+
+                foreach (array_keys($columns) as $field) {
+
+                    $value = $row->{$field} ?? '';
+
+                    // Format tanggal via Carbon (kalau field ini termasuk yang perlu diformat)
+                    if (isset($dateFields[$field])) {
+                        $value = $value
+                            ? \Carbon\Carbon::parse($value)->format($dateFields[$field])
+                            : '-';
+                    }
+
+                    // Highlight kolom aging sesuai ambang batas masing-masing jenis monitoring
+                    if ($field === 'aging' && $agingOperator !== null && $agingThreshold !== null) {
+
+                        $isHighlight = $agingOperator === '>='
+                            ? ((float) $value >= $agingThreshold)
+                            : ((float) $value > $agingThreshold);
+
+                        $bg = $isHighlight ? '#ffb3b3' : 'white';
+
+                        $html .= '<td style="background-color:' . $bg . '; text-align:center; font-weight:bold;">'
+                            . e($value) . '</td>';
+
+                    } elseif ($field === 'aging') {
+
+                        // Aging tanpa highlight (dipakai di tabel Pending < 5 Hari)
+                        $html .= '<td style="text-align:center; font-weight:bold;">' . e($value) . '</td>';
+
+                    } else {
+                        $html .= '<td>' . e($value) . '</td>';
+                    }
+                }
+
+                $html .= '</tr>';
+            }
+        }
+
+        $html .= '</tbody></table>';
+
+        return $html;
+    }
+
+    /**
+     * Bangun semua tabel case yang mungkin dipakai, dikembalikan sebagai array
+     * dengan key placeholder. Body template tinggal menaruh placeholder ini
+     * di posisi mana pun teks yang diinginkan, misalnya:
+     *
+     *   [[TABEL_CASE]]              -> WIP / Pending 14D / KCI / Finish Repair (1 tabel)
+     *   [[TABEL_PENDING_BELOW_5]]   -> khusus W003, tabel "aging < 5 hari"
+     *   [[TABEL_PENDING_ABOVE_5]]   -> khusus W003, tabel "aging >= 5 hari"
+     *
+     * Kalau body TIDAK mengandung placeholder tsb (template lama belum diubah),
+     * tabel otomatis ditempel di akhir body sebagai fallback.
+     */
+    private function buildCaseTablePlaceholders(
+        bool $isWip,
+        bool $isPending5d,
+        bool $isPending14d,
+        bool $iskci,
+        bool $isfinishrepair,
+        $rows,
+        $pendingBelow5Rows,
+        $pendingAbove5Rows,
+        $pendingAbove14Rows,
+        $kciRows,
+        $finishrepairRows
+    ): array {
+
+        $placeholders = [];
+
+        if ($isWip) {
+            $placeholders['[[TABEL_CASE]]'] = $this->renderCaseTable(
+                $rows,
+                [
+                    'case_id_manual' => 'Case ID',
+                    'aging' => 'Aging',
+                    'company_name' => 'Company Name',
+                    'finish_date' => 'Finish Date',
+                    'case_status' => 'Case Status',
+                    'hp_part_no' => 'HP Part No',
+                    'so_no' => 'SO No',
+                    'awb_no_part_return' => 'AWB No Part Return',
+                    'part_in_date' => 'Part In Date',
+                    'created_at' => 'Today',
+                ],
+                [
+                    'aging_operator' => '>',
+                    'aging_threshold' => 14,
+                    'empty_text' => 'Tidak ada data ditemukan',
+                ]
+            );
+        }
+
+        if ($isPending5d) {
+
+            $columns5d = [
+                'case_id' => 'Case ID',
+                'received_date' => 'Received Date',
+                'start_repair_date' => 'Start Repair Date',
+                'company_name' => 'Company Name',
+                'aging' => 'Aging',
+                'case_status' => 'Case Status',
+                'ce_name' => 'CE Name',
+                'company_city' => 'Company City',
+                'part_name' => 'Part Name',
+                'hp_part_no' => 'HP Part No',
+                'part_request_date' => 'Part Request Date',
+                'so_no' => 'SO No',
+                'eta_date' => 'ETA Date',
+                'part_in_date' => 'Part In Date',
+                'product_no' => 'Product No',
+                'product_name' => 'Product Name',
+            ];
+
+            $placeholders['[[TABEL_PENDING_BELOW_5]]'] = $this->renderCaseTable(
+                $pendingBelow5Rows,
+                $columns5d,
+                [
+                    'date_fields' => ['part_request_date' => 'Y-m-d'],
+                ]
+            );
+
+            $placeholders['[[TABEL_PENDING_ABOVE_5]]'] = $this->renderCaseTable(
+                $pendingAbove5Rows,
+                $columns5d,
+                [
+                    'aging_operator' => '>',
+                    'aging_threshold' => 5,
+                    'date_fields' => ['part_request_date' => 'Y-m-d'],
+                ]
+            );
+        }
+
+        if ($isPending14d) {
+            $placeholders['[[TABEL_CASE]]'] = $this->renderCaseTable(
+                $pendingAbove14Rows,
+                [
+                    'company_name' => 'Company Name',
+                    'aging' => 'Aging',
+                    'case_id' => 'Case ID',
+                    'received_date' => 'Received Date',
+                    'part_request_date' => 'Part Request Date',
+                    'eta_date' => 'ETA Date',
+                    'part_in_date' => 'Part In Date',
+                    'so_no' => 'SO No',
+                    'hp_part_no' => 'HP Part No.',
+                    'case_status' => 'Case Status',
+                    'ce_name' => 'CE Name',
+                ],
+                [
+                    'aging_operator' => '>=',
+                    'aging_threshold' => 14,
+                    'date_fields' => [
+                        'received_date' => 'd-M-Y',
+                        'part_request_date' => 'd-M-Y',
+                        'eta_date' => 'd-M-Y',
+                        'part_in_date' => 'd-M-Y',
+                    ],
+                    'empty_text' => 'Tidak ada Pending Case di atas 14 hari.',
+                ]
+            );
+        }
+
+        if ($iskci) {
+            $placeholders['[[TABEL_CASE]]'] = $this->renderCaseTable(
+                $kciRows,
+                [
+                    'case_id' => 'Case ID',
+                    'count' => 'Count',
+                    'company_name' => 'Company Name',
+                    'aging' => 'Aging',
+                    'customer_name' => 'Customer name',
+                    'case_status' => 'Case Status',
+                    'ce_name' => 'CE name',
+                    'company_city' => 'Company city',
+                ],
+                [
+                    'aging_operator' => '>',
+                    'aging_threshold' => 20,
+                    'empty_text' => 'Tidak ada data ditemukan',
+                ]
+            );
+        }
+
+        if ($isfinishrepair) {
+            $placeholders['[[TABEL_CASE]]'] = $this->renderCaseTable(
+                $finishrepairRows,
+                [
+                    'case_id' => 'Case ID',
+                    'count' => 'Count',
+                    'company_name' => 'Company Name',
+                    'aging' => 'Aging',
+                    'customer_name' => 'Customer name',
+                    'case_status' => 'Case Status',
+                    'ce_name' => 'CE name',
+                    'company_city' => 'Company city',
+                ],
+                [
+                    'aging_operator' => '>',
+                    'aging_threshold' => 20,
+                    'empty_text' => 'Tidak ada data ditemukan',
+                ]
+            );
+        }
+
+        return $placeholders;
+    }
+
+    /**
+     * Sisipkan tabel-tabel case ke posisi placeholder di dalam body.
+     * Kalau body tidak punya placeholder-nya sama sekali (template lama),
+     * tabel ditempel otomatis di akhir sebagai fallback supaya tidak hilang.
+     */
+    private function injectCaseTables(string $body, array $placeholders): string
+    {
+        $html = $body;
+        $anyReplaced = false;
+
+        // ★★★ DIUBAH : sebelumnya placeholder dengan tabel KOSONG (tidak ada data)
+        // dilewati (skip), jadi teksnya (mis. "[[TABEL_PENDING_ABOVE_5]]") tertinggal
+        // mentah di email. Sekarang tetap diganti — kalau kosong, ya diganti jadi
+        // kosong (hilang), bukan dibiarkan. ★★★
+        foreach ($placeholders as $tag => $tableHtml) {
+
+            if (str_contains($html, $tag)) {
+                $html = str_replace($tag, $tableHtml, $html);
+                $anyReplaced = true;
+            }
+        }
+
+        if (!$anyReplaced) {
+            // Fallback: body belum pakai placeholder sama sekali, tempel di akhir
+            foreach ($placeholders as $tableHtml) {
+                $html .= $tableHtml;
+            }
+        }
+
+        return $html;
+    }
     public function preview(Request $request)
     {
         $selectedCompanies = $request->selected_company ?? [];
@@ -229,20 +522,6 @@ class EmailController extends Controller
 
             $footerHtml = nl2br($footer->footer_html ?? '');
 
-            $html = Blade::render(
-                $body,
-                [
-                    'rows' => $rows,
-                    'pendingBelow5Rows' => $pendingBelow5Rows,
-                    'pendingAbove5Rows' => $pendingAbove5Rows,
-                    'pendingAbove14Rows' => $pendingAbove14Rows,
-                    'kciRows' => $kciRows,
-                    'finishrepairRows' => $finishrepairRows,
-                    'showTable' => true,
-                    'footer' => $footerHtml,
-                ]
-            );
-
             // 1. Buat pengecekan jenis monitoring (Tidak case-sensitive)
             $jenisMonitoring = strtolower(trim($template->jenis_monitoring ?? ''));
 
@@ -259,7 +538,35 @@ class EmailController extends Controller
             $isfinishrepair =
                 str_contains($jenisMonitoring, 'finish repair') ||
                 str_contains($jenisMonitoring, 'finishrepair');
-            // 2. Siapkan array untuk menampung teks
+
+            // ★★★ DIUBAH (3/4): baris ini dulunya "$html = Blade::render($body, [...])"
+            // yang menyebabkan ParseError. Sekarang tabel disisipkan lewat placeholder,
+            // deteksi jenis monitoring ($isWip dkk di atas) juga DIPINDAH ke sini
+            // (sebelumnya baru dihitung SETELAH Blade::render dipanggil). ★★★
+            // 2. Body sekarang HANYA teks/HTML biasa dari Summernote (aman, tanpa kode Blade)
+            //    Tabel case digenerate otomatis lewat PHP dan disisipkan lewat placeholder,
+            //    BUKAN Blade::render() lagi
+            $tablePlaceholders = $this->buildCaseTablePlaceholders(
+                $isWip,
+                $isPending5d,
+                $isPending14d,
+                $iskci,
+                $isfinishrepair,
+                $rows,
+                $pendingBelow5Rows,
+                $pendingAbove5Rows,
+                $pendingAbove14Rows,
+                $kciRows,
+                $finishrepairRows
+            );
+
+            $footerHtmlStyled = '<div style="font-family: Arial, sans-serif; font-size:12px; color:#000; line-height:1.5;">'
+                . $footerHtml
+                . '</div>';
+
+            $html = $this->injectCaseTables($body, $tablePlaceholders) . $footerHtmlStyled;
+
+            // 3. Siapkan array untuk menampung teks
             $totalArray = [];
 
             if ($isWip) {
@@ -572,19 +879,53 @@ class EmailController extends Controller
                 $template->subject
             );
             $body = $template->body;
-            $html = Blade::render(
-                $body,
-                [
-                    'rows' => $rows,
-                    'pendingBelow5Rows' => $pendingBelow5Rows,
-                    'pendingAbove5Rows' => $pendingAbove5Rows,
-                    'pendingAbove14Rows' => $pendingAbove14Rows,
-                    'kciRows' => $kciRows,
-                    'finishrepairRows' => $finishrepairRows,
-                    'showTable' => true,
-                    'footer' => nl2br($footer->footer_html ?? ''),
-                ]
+
+            // ★★★ DIUBAH (4/4): dari sini sampai "$html = ..." di bawah adalah perubahan
+            // di function send(). Sebelumnya function ini TIDAK PERNAH mendeteksi jenis
+            // monitoring sama sekali (blok $jenisMonitoring/$isWip dst di bawah ini seluruhnya
+            // BARU) dan langsung memanggil Blade::render($body, [...]) yang sekarang diganti
+            // buildCaseTablePlaceholders() + injectCaseTables(). ★★★
+            // Deteksi jenis monitoring (sebelumnya function send() tidak melakukan ini sama sekali)
+            $jenisMonitoring = strtolower(trim($template->jenis_monitoring ?? ''));
+
+            $isWip = str_contains($jenisMonitoring, 'wip');
+
+            $isPending5d =
+                str_contains($jenisMonitoring, '5day') ||
+                str_contains($jenisMonitoring, 'tat5');
+
+            $isPending14d =
+                str_contains($jenisMonitoring, '14day') ||
+                str_contains($jenisMonitoring, 'tat14');
+            $iskci = str_contains($jenisMonitoring, 'kci');
+            $isfinishrepair =
+                str_contains($jenisMonitoring, 'finish repair') ||
+                str_contains($jenisMonitoring, 'finishrepair');
+
+            $footerHtml = nl2br($footer->footer_html ?? '');
+
+            // Body sekarang HANYA teks/HTML biasa dari Summernote (aman, tanpa kode Blade)
+            // Tabel case digenerate otomatis lewat PHP dan disisipkan lewat placeholder,
+            // footer ditambahkan di akhir, BUKAN Blade::render() lagi
+            $tablePlaceholders = $this->buildCaseTablePlaceholders(
+                $isWip,
+                $isPending5d,
+                $isPending14d,
+                $iskci,
+                $isfinishrepair,
+                $rows,
+                $pendingBelow5Rows,
+                $pendingAbove5Rows,
+                $pendingAbove14Rows,
+                $kciRows,
+                $finishrepairRows
             );
+            
+            $footerHtmlStyled = '<div style="font-family: Arial, sans-serif; font-size:12px; color:#000; line-height:1.5;">'
+                . $footerHtml
+                . '</div>';
+
+            $html = $this->injectCaseTables($body, $tablePlaceholders) . $footerHtml;
 
             $ccEmails = [];
 

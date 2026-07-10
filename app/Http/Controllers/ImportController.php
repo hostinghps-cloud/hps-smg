@@ -42,7 +42,7 @@ class ImportController extends Controller
         }
 
         if ($request->jenis_upload == 'W002-TAT14D (Pending case 14 days)') {
-            DB::table('pending_14')->truncate();
+            DB::table('pending_14d')->truncate();
         }
 
         if ($request->jenis_upload == 'W004-KCI') {

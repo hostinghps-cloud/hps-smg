@@ -292,6 +292,26 @@
                 0 12px 25px rgba(239, 68, 68, .35);
 
         }
+
+        .note-toolbar {
+            background: #1e293b !important;
+            border-bottom: none !important;
+        }
+
+        .note-toolbar .btn,
+        .note-toolbar .dropdown-toggle {
+            color: #fff !important;
+        }
+
+        .note-toolbar .btn:hover,
+        .note-toolbar .dropdown-toggle:hover {
+            background: #334155 !important;
+        }
+
+        .note-editor {
+            border-radius: 12px;
+            overflow: hidden;
+        }
     </style>
 
 </head>
@@ -340,77 +360,77 @@
 
             @auth
 
-                @php
-                    $role = auth()->user()->role;
+            @php
+            $role = auth()->user()->role;
 
-                    $isAdmin = $role == 'admin';
-                    $isUser = $role == 'user';
+            $isAdmin = $role == 'admin';
+            $isUser = $role == 'user';
 
-                    $masterOpen =
-                        request()->is('template-master*') ||
-                        request()->is('email-master*') ||
-                        request()->is('footer-master*') ||
-                        request()->is('user-master*');
-                @endphp
+            $masterOpen =
+            request()->is('template-master*') ||
+            request()->is('email-master*') ||
+            request()->is('footer-master*') ||
+            request()->is('user-master*');
+            @endphp
 
-                @if($isAdmin || $isUser)
-
-
-
-                    <div class="menu-group">
-
-
-                        <div class="menu-toggle {{ $masterOpen ? 'active' : '' }}" onclick="toggleMaster()">
-
-                            <span>
-
-                                📁 Master
-
-                            </span>
-
-                            <span id="masterArrow" class="arrow {{ $masterOpen ? 'rotate' : '' }}">
-
-                                ▶
-
-                            </span>
-
-                        </div>
+            @if($isAdmin || $isUser)
 
 
 
-                        <div id="masterMenu" class="submenu {{ $masterOpen ? 'show' : '' }}">
+            <div class="menu-group">
 
-                            <a href="/template-master" class="{{ request()->is('template-master*') ? 'active' : '' }}">
-                                📄 Template
-                            </a>
 
-                            <a href="/email-master" class="{{ request()->is('email-master*') ? 'active' : '' }}">
-                                📬 Email
-                            </a>
+                <div class="menu-toggle {{ $masterOpen ? 'active' : '' }}" onclick="toggleMaster()">
 
-                            <a href="/footer-master" class="{{ request()->is('footer-master*') ? 'active' : '' }}">
-                                📝 Footer
-                            </a>
+                    <span>
 
-                            {{-- User Master --}}
-                            @if(
-                                in_array(
-                                    auth()->user()->role,
-                                    ['master','admin','user']
-                                )
-                            )
+                        📁 Master
 
-                            <a href="/user-master"
-                            class="{{ request()->is('user-master*') ? 'active' : '' }}">
-                                👤 Akun
-                            </a>
+                    </span>
 
-                            @endif
+                    <span id="masterArrow" class="arrow {{ $masterOpen ? 'rotate' : '' }}">
 
-                        </div>
-                    </div>
+                        ▶
 
-                @endif
+                    </span>
+
+                </div>
+
+
+
+                <div id="masterMenu" class="submenu {{ $masterOpen ? 'show' : '' }}">
+
+                    <a href="/template-master" class="{{ request()->is('template-master*') ? 'active' : '' }}">
+                        📄 Template
+                    </a>
+
+                    <a href="/email-master" class="{{ request()->is('email-master*') ? 'active' : '' }}">
+                        📬 Email
+                    </a>
+
+                    <a href="/footer-master" class="{{ request()->is('footer-master*') ? 'active' : '' }}">
+                        📝 Footer
+                    </a>
+
+                    {{-- User Master --}}
+                    @if(
+                    in_array(
+                    auth()->user()->role,
+                    ['master','admin','user']
+                    )
+                    )
+
+                    <a href="/user-master"
+                        class="{{ request()->is('user-master*') ? 'active' : '' }}">
+                        👤 Akun
+                    </a>
+
+                    @endif
+
+                </div>
+            </div>
+
+            @endif
 
             @endauth
 
@@ -421,21 +441,21 @@
 
         @auth
 
-            <div class="logout-wrapper">
+        <div class="logout-wrapper">
 
-                <form action="/logout" method="POST">
+            <form action="/logout" method="POST">
 
-                    @csrf
+                @csrf
 
-                    <button class="btn-logout" onclick="return confirm('Yakin ingin logout?')">
+                <button class="btn-logout" onclick="return confirm('Yakin ingin logout?')">
 
-                        🚪 Logout
+                    🚪 Logout
 
-                    </button>
+                </button>
 
-                </form>
+            </form>
 
-            </div>
+        </div>
 
         @endauth
 
@@ -450,17 +470,17 @@
 
         @if(session('success'))
 
-            <div class="alert alert-success alert-dismissible fade show shadow-sm" style="
+        <div class="alert alert-success alert-dismissible fade show shadow-sm" style="
                 border-radius:12px;
                 font-weight:500;
                 ">
 
-                ✅ {{ session('success') }}
+            ✅ {{ session('success') }}
 
-                <button type="button" class="btn-close" data-bs-dismiss="alert">
-                </button>
+            <button type="button" class="btn-close" data-bs-dismiss="alert">
+            </button>
 
-            </div>
+        </div>
 
         @endif
 
@@ -468,17 +488,17 @@
 
         @if(session('error'))
 
-            <div class="alert alert-danger alert-dismissible fade show shadow-sm" style="
+        <div class="alert alert-danger alert-dismissible fade show shadow-sm" style="
                 border-radius:12px;
                 font-weight:500;
                 ">
 
-                ❌ {{ session('error') }}
+            ❌ {{ session('error') }}
 
-                <button type="button" class="btn-close" data-bs-dismiss="alert">
-                </button>
+            <button type="button" class="btn-close" data-bs-dismiss="alert">
+            </button>
 
-            </div>
+        </div>
 
         @endif
 
@@ -498,7 +518,6 @@
 
 
     <script>
-
         function toggleMaster() {
 
             let menu =
@@ -520,9 +539,17 @@
             );
 
         }
-
     </script>
 
+    <!-- jQuery -->
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+
+    <!-- Bootstrap -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.bundle.min.js"></script>
+
+    <!-- Summernote -->
+    <link href="https://cdn.jsdelivr.net/npm/summernote@0.9.0/dist/summernote-bs5.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/summernote@0.9.0/dist/summernote-bs5.min.js"></script>
 </body>
 
 </html>
