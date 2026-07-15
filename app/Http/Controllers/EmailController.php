@@ -6,13 +6,13 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
 use App\Models\EmailTemplate;
-// ★★★ DIUBAH (1/4): "use Illuminate\Support\Facades\Blade;" DIHAPUS dari sini.
+// ★★★ DIUBAH: "use Illuminate\Support\Facades\Blade;" DIHAPUS dari sini.
 // Sebelumnya dipakai untuk Blade::render($body, [...]) yang menyebabkan ParseError
 // kalau body (dari WYSIWYG) mengandung karakter "&", "<", ">" hasil encode HTML.
 
 class EmailController extends Controller
 {
-    // ★★★ DIUBAH (2/4): 3 method baru di bawah ini (sampai method injectCaseTables)
+    // ★★★ DIUBAH : 3 method baru di bawah ini (sampai method injectCaseTables)
     // menggantikan Blade::render() dengan generator tabel HTML pakai PHP biasa. ★★★
 
     /**
@@ -54,7 +54,6 @@ class EmailController extends Controller
 
             $html .= '<tr><td colspan="' . (count($columns) + 1) . '" align="center">'
                 . e($emptyText) . '</td></tr>';
-
         } else {
 
             $no = 1;
@@ -86,12 +85,10 @@ class EmailController extends Controller
 
                         $html .= '<td style="background-color:' . $bg . '; text-align:center; font-weight:bold;">'
                             . e($value) . '</td>';
-
                     } elseif ($field === 'aging') {
 
                         // Aging tanpa highlight (dipakai di tabel Pending < 5 Hari)
                         $html .= '<td style="text-align:center; font-weight:bold;">' . e($value) . '</td>';
-
                     } else {
                         $html .= '<td>' . e($value) . '</td>';
                     }
@@ -232,7 +229,6 @@ class EmailController extends Controller
                 $kciRows,
                 [
                     'case_id' => 'Case ID',
-                    'count' => 'Count',
                     'company_name' => 'Company Name',
                     'aging' => 'Aging',
                     'customer_name' => 'Customer name',
@@ -303,6 +299,7 @@ class EmailController extends Controller
 
         return $html;
     }
+
     public function preview(Request $request)
     {
         $selectedCompanies = $request->selected_company ?? [];
@@ -539,7 +536,7 @@ class EmailController extends Controller
                 str_contains($jenisMonitoring, 'finish repair') ||
                 str_contains($jenisMonitoring, 'finishrepair');
 
-            // ★★★ DIUBAH (3/4): baris ini dulunya "$html = Blade::render($body, [...])"
+            // ★★★ DIUBAH : baris ini dulunya "$html = Blade::render($body, [...])"
             // yang menyebabkan ParseError. Sekarang tabel disisipkan lewat placeholder,
             // deteksi jenis monitoring ($isWip dkk di atas) juga DIPINDAH ke sini
             // (sebelumnya baru dihitung SETELAH Blade::render dipanggil). ★★★
@@ -560,6 +557,9 @@ class EmailController extends Controller
                 $finishrepairRows
             );
 
+            // ★★★ DIUBAH: footer dibungkus style yang sama dengan body (Arial 12px)
+            // supaya ukuran fontnya konsisten, sebelumnya footer pakai font default browser
+            // (jadi kelihatan lebih besar dari teks body).
             $footerHtmlStyled = '<div style="font-family: Arial, sans-serif; font-size:12px; color:#000; line-height:1.5;">'
                 . $footerHtml
                 . '</div>';
@@ -679,15 +679,27 @@ class EmailController extends Controller
         $footer = DB::table('footer_masters')->where('id', $request->footer_id)->first();
 
         foreach ($selectedCompanies as $kodeCompany) {
-            $emailMaster = DB::table('email_masters')
+            $emailMasters = DB::table('email_masters')
                 ->where('kode_company', $kodeCompany)
-                ->first();
+                ->get();
 
-            if (!$emailMaster) {
+            if ($emailMasters->isEmpty()) {
                 continue;
             }
 
-            $emails = explode(',', $emailMaster->email);
+            // Ambil semua email milik company
+            $emails = $emailMasters
+                ->pluck('email')
+                ->map(function ($email) {
+                    return trim($email);
+                })
+                ->filter()
+                ->unique()
+                ->values()
+                ->toArray();
+
+            // Ambil nama company dari baris pertama
+            $companyName = $emailMasters->first()->company_name;
 
             // 1. Ambil Data WIP (Tambahkan whereNull agar konsisten dengan preview)
             $query = DB::table('wip_datas')
@@ -865,8 +877,6 @@ class EmailController extends Controller
             });
             $kciRows = $kciRows;
 
-            // Sekarang aman, tidak akan menimbulkan Undefined Variable
-            $companyName = $emailMaster->company_name;
 
 
             // SUBJECT DINAMIS
@@ -880,7 +890,7 @@ class EmailController extends Controller
             );
             $body = $template->body;
 
-            // ★★★ DIUBAH (4/4): dari sini sampai "$html = ..." di bawah adalah perubahan
+            // ★★★ DIUBAH : dari sini sampai "$html = ..." di bawah adalah perubahan
             // di function send(). Sebelumnya function ini TIDAK PERNAH mendeteksi jenis
             // monitoring sama sekali (blok $jenisMonitoring/$isWip dst di bawah ini seluruhnya
             // BARU) dan langsung memanggil Blade::render($body, [...]) yang sekarang diganti
@@ -920,12 +930,15 @@ class EmailController extends Controller
                 $kciRows,
                 $finishrepairRows
             );
-            
+
+            // ★★★ DIUBAH: footer dibungkus style yang sama dengan body (Arial 12px)
+            // supaya ukuran fontnya konsisten, sebelumnya footer pakai font default browser
+            // (jadi kelihatan lebih besar dari teks body).
             $footerHtmlStyled = '<div style="font-family: Arial, sans-serif; font-size:12px; color:#000; line-height:1.5;">'
                 . $footerHtml
                 . '</div>';
 
-            $html = $this->injectCaseTables($body, $tablePlaceholders) . $footerHtml;
+            $html = $this->injectCaseTables($body, $tablePlaceholders) . $footerHtmlStyled;
 
             $ccEmails = [];
 
@@ -957,7 +970,14 @@ class EmailController extends Controller
 
             Mail::purge('smtp');
 
-            Mail::html($html, function ($message) use ($emails, $ccEmails, $subject, $attachments, $bccEmails) {
+            Mail::html($html, function ($message) use (
+                $emails,
+                $ccEmails,
+                $subject,
+                $attachments,
+                $bccEmails
+            ) {
+
                 $message
                     ->from(
                         auth()->user()->email,
@@ -970,9 +990,12 @@ class EmailController extends Controller
 
                 if ($attachments) {
                     foreach ($attachments as $file) {
-                        $message->attach($file->getRealPath(), [
-                            'as' => $file->getClientOriginalName()
-                        ]);
+                        $message->attach(
+                            $file->getRealPath(),
+                            [
+                                'as' => $file->getClientOriginalName()
+                            ]
+                        );
                     }
                 }
             });
@@ -1103,6 +1126,19 @@ class EmailController extends Controller
             $updatefinishrepairQuery->update([
                 'sent_at' => now(),
             ]);
+            $totalCase = 0;
+
+            if ($isWip) {
+                $totalCase = $rows->count();
+            } elseif ($isPending5d) {
+                $totalCase = $pendingCase5dRows->count();
+            } elseif ($isPending14d) {
+                $totalCase = $pendingCase14dRows->count();
+            } elseif ($iskci) {
+                $totalCase = $kciRows->count();
+            } elseif ($isfinishrepair) {
+                $totalCase = $finishrepairRows->count();
+            }
 
             // 4. Simpan log email
             DB::table('email_logs')->insert([
@@ -1111,12 +1147,7 @@ class EmailController extends Controller
                 'subject' => $subject,
                 'company_name' => $companyName,
                 'recipient' => implode(', ', $emails),
-                'total_case' =>
-                $rows->count()
-                    + $pendingCase5dRows->count()
-                    + $pendingCase14dRows->count()
-                    + $kciRows->count()
-                    + $finishrepairRows->count(),
+                'total_case' => $totalCase,
                 'aging_filter' => $request->aging_filter,
                 'sent_at' => now(),
                 'created_at' => now(),

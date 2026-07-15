@@ -44,6 +44,8 @@
 
             <div class="modal-content">
 
+                <!-- ★★★ DIUBAH  (1/5): id="addTemplateForm" baru ditambahkan
+                    (untuk hook JS Summernote di bawah). ★★★ -->
                 <form
                     id="addTemplateForm"
                     action="/template-master/store"
@@ -83,12 +85,12 @@
 
                                 <option value="">-- Pilih Monitoring --</option>
 
-                                 <option value="W001-WIP">W001-WIP</option>
+                                <option value="W001-WIP">W001-WIP</option>
                                 <option value="W002-TAT14D (Pending case 14 days)">W002-TAT14D (Pending case 14 days)</option>
                                 <option value="W003-TAT5D (Pending case 5 days)">W003-TAT5D (Pending case 5 days)</option>
                                 <option value="W004-KCI">W004-KCI</option>
-                                <option value="W005-Finish Repair">W005-Finish Repair</option>
-                              
+                                <option value="W005-FR (Finish Repair)">W005-FR (Finish Repair)</option>
+                                
                             </select>
 
                         </div>
@@ -139,21 +141,21 @@
 
                             </label>
 
+                            <!-- ★★★ DIUBAH  (2/5): textarea ini sekarang ditumpangi Summernote,
+                                lihat initSummernote('#body_add') di script bawah. Atribut/nama tidak berubah. ★★★ -->
                             <textarea
                                 name="body"
                                 id="body_add"
                                 class="form-control"
                                 placeholder="Isi template email..."></textarea>
 
-
                         </div>
-
 
                         <!-- VARIABLE -->
                         <div class="alert alert-info">
 
                             <strong>
-                                Variable tersedia:
+                                Variable tersedia (ketik langsung di editor):
                             </strong>
 
                             <hr>
@@ -228,9 +230,7 @@
                         <option value="W002-TAT14D (Pending case 14 days)">W002-TAT14D (Pending case 14 days)</option>
                         <option value="W003-TAT5D (Pending case 5 days)">W003-TAT5D (Pending case 5 days)</option>
                         <option value="W004-KCI">W004-KCI</option>
-                        <option value="W005-Finish Repair">W005-Finish Repair</option>
-                        <option value="W006-Rerepair">W006-Rerepair</option>
-                        <option value="W007-OLA">W007-OLA</option>
+                        <option value="W005-FR (Finish Repair)">W005-FR (Finish Repair)</option>
 
                     </select>
 
@@ -248,7 +248,7 @@
                         <tr>
 
                             <th width="60">
-                                ID
+                                No
                             </th>
 
                             <th>
@@ -357,8 +357,10 @@
 
                                 <div class="modal-content">
 
+                                    <!-- ★★★ DIUBAH  (3/5): id="editTemplateForm{{ $item->id }}" baru
+                                        ditambahkan (untuk hook JS Summernote per baris). ★★★ -->
                                     <form
-                                         id="editTemplateForm{{ $item->id }}"
+                                        id="editTemplateForm{{ $item->id }}"
                                         action="/template-master/update/{{ $item->id }}"
                                         method="POST">
 
@@ -396,7 +398,7 @@
                                                     class="form-select"
                                                     required>
 
-                                                    						<option value="W001-WIP"
+                                                    <option value="W001-WIP"
                                                         {{ $item->jenis_monitoring=='W001-WIP'  ? 'selected' : '' }}>
                                                         W001-WIP
                                                     </option>
@@ -416,20 +418,12 @@
                                                         W004-KCI
                                                     </option>
 
-                                                    <option value="W005-Finish Repair"
-                                                        {{ $item->jenis_monitoring=='W005-Finish Repair' ? 'selected' : '' }}>
-                                                        W005-Finish Repair
+                                                    <option value="W005-FR (Finish Repair)"
+                                                        {{ $item->jenis_monitoring=='W005-FR (Finish Repair)' ? 'selected' : '' }}>
+                                                        W005-FR (Finish Repair)
                                                     </option>
 
-                                                    <option value="W006-Rerepair"
-                                                        {{ $item->jenis_monitoring=='W006-Rerepair' ? 'selected' : '' }}>
-                                                        W006-Rerepair
-                                                    </option>
-
-                                                    <option value="W007-OLA"
-                                                        {{ $item->jenis_monitoring=='W007-OLA' ? 'selected' : '' }}>
-                                                        W007-OLA
-                                                    </option>
+                                                    
 
                                                 </select>
 
@@ -479,7 +473,9 @@
 
                                                 </label>
 
-                                               <textarea
+                                                <!-- ★★★ DIUBAH (4/5): textarea ini sekarang ditumpangi
+                                                    Summernote via initSummernote() saat modal dibuka. ★★★ -->
+                                                <textarea
                                                     name="body"
                                                     id="body_edit_{{ $item->id }}"
                                                     class="form-control">{{ $item->body }}</textarea>
@@ -490,7 +486,7 @@
                                             <div class="alert alert-info">
 
                                                 <strong>
-                                                    Variable tersedia:
+                                                    Variable tersedia (ketik langsung di editor):
                                                 </strong>
 
                                                 <hr>
@@ -565,9 +561,33 @@
 </div>
 
 
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<!-- ★★★ DIUBAH : script <script src=".../bootstrap@5.3.3/...bundle.min.js"> yang tadinya
+    ada di sini DIHAPUS. Ternyata layout (app.blade.php) SUDAH memuat Bootstrap versi 5.0.2
+    duluan — jadi Bootstrap ke-load 2x versi beda, dan itu yang bikin semua tombol di dalam
+    modal (termasuk toolbar Summernote) tidak merespon klik. Cukup pakai punya layout. ★★★ -->
+
+<!-- ★★★ DIUBAH  (5/5): Seluruh blok mulai dari sini sampai akhir file BARU.
+    CDN jQuery + Summernote, fungsi initSummernote(), dan pemanggilannya
+    saat modal Add/Edit Template dibuka (shown.bs.modal). ★★★ -->
+<!-- SUMMERNOTE RICH TEXT EDITOR (WYSIWYG gratis, sudah ada tombol Table & Code View) -->
 <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
 <link href="https://cdn.jsdelivr.net/npm/summernote@0.8.20/dist/summernote-bs5.min.css" rel="stylesheet">
+
+<!-- ★★★ DIUBAH : CSS fix — dropdown Summernote (Font Size, Color, dll) sering ketutup/
+    ke-clip kalau editornya ada di dalam modal Bootstrap. Paksa z-index tinggi & overflow visible. ★★★ -->
+<style>
+    .modal .note-editor .dropdown-menu,
+    .modal .note-editor .note-dropdown-menu {
+        z-index: 3000 !important;
+    }
+    .modal-body {
+        overflow: visible !important;
+    }
+    .modal .note-editor {
+        position: relative;
+        z-index: 1;
+    }
+</style>
 <script src="https://cdn.jsdelivr.net/npm/summernote@0.8.20/dist/summernote-bs5.min.js"></script>
 
 <script>
@@ -610,23 +630,22 @@
         ['style', ['style']],
         ['font', ['bold', 'italic', 'underline', 'clear']],
         ['fontname', ['fontname']],
-        ['color', ['color']],
         ['fontsize', ['fontsize']],
+        ['color', ['color']],
         ['para', ['ul', 'ol', 'paragraph']],
         ['insert', ['link']],
         ['view', ['fullscreen', 'codeview']]
     ];
 
-   function initSummernote(selector) {
+    function initSummernote(selector) {
 
+        // hindari inisialisasi dobel kalau modal dibuka berkali-kali
         if ($(selector).next('.note-editor').length) {
             return;
         }
 
         $(selector).summernote({
             height: 250,
-            dialogsInBody: true,
-            disableDragAndDrop: true,
             toolbar: SUMMERNOTE_TOOLBAR,
             callbacks: {
                 onChange: function(contents) {
@@ -634,7 +653,6 @@
                 }
             }
         });
-
     }
 
     // ===== EDITOR ADD TEMPLATE =====
@@ -655,5 +673,42 @@
             }
         });
     });
+</script>
+
+<!-- ★★★ DIUBAH : workaround dropdown Summernote (Font Family, Font Size, Color, dll)
+    yang tidak merespon klik di dalam modal. Logic buka/tutupnya ditulis manual di sini,
+    TIDAK bergantung ke mekanisme Bootstrap sama sekali, supaya pasti berfungsi. ★★★ -->
+<script>
+    document.addEventListener('click', function(e) {
+
+        const toggle = e.target.closest('.note-editor .dropdown-toggle');
+
+        if (!toggle) {
+            if (!e.target.closest('.note-editor .dropdown-menu')) {
+                document.querySelectorAll('.note-editor .dropdown-menu.show')
+                    .forEach(function(m) { m.classList.remove('show'); });
+            }
+            return;
+        }
+
+        e.preventDefault();
+        e.stopPropagation();
+
+        const menu = toggle.nextElementSibling;
+
+        if (!menu || !menu.classList.contains('dropdown-menu')) {
+            return;
+        }
+
+        const isOpen = menu.classList.contains('show');
+
+        document.querySelectorAll('.note-editor .dropdown-menu.show')
+            .forEach(function(m) { m.classList.remove('show'); });
+
+        if (!isOpen) {
+            menu.classList.add('show');
+        }
+
+    }, true);
 </script>
 @endsection

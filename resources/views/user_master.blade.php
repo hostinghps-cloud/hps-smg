@@ -194,7 +194,7 @@
                             <tr>
 
                                 <th width="70">
-                                    ID
+                                    No
                                 </th>
 
                                 <th>

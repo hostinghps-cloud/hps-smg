@@ -88,8 +88,71 @@ class ImportController extends Controller
             ->orderByDesc('sent_at')
             ->paginate(10); // 10 data per halaman
 
-        return view('dashboard', compact('dashboard'));
+    $stats = [
+        'total'    => DB::table('email_logs')->count(),
+        'hari_ini' => DB::table('email_logs')->whereDate('sent_at', today())->count(),
+        'company'  => DB::table('email_logs')->distinct('company_name')->count('company_name'),
+        'case'     => DB::table('email_logs')->sum('total_case'),
+    ];
+
+    // ★★★ DIUBAH E (BARU): statistik ringkas per jenis monitoring — Total Case (yang
+    // masih aktif/belum terkirim, whereNull('sent_at') sama seperti di EmailController.php)
+    // + jumlah case dengan aging tinggi + max aging. Ambang batas aging per jenis sama
+    // persis dengan yang dipakai di EmailController.php (renderCaseTable). ★★★
+    $monitoringStats = [
+
+        'wip' => [
+            'label'       => 'W001 - WIP',
+            'total'       => DB::table('wip_datas')->whereNull('sent_at')->count(),
+            'aging_alert' => DB::table('wip_datas')->whereNull('sent_at')->where('aging', '>', 14)->count(),
+            'max_aging'   => DB::table('wip_datas')->whereNull('sent_at')->max('aging'),
+        ],
+
+        'pending14d' => [
+            'label'       => 'W002 - Pending 14D',
+            'total'       => DB::table('pending_14d')->whereNull('sent_at')->count(),
+            'aging_alert' => DB::table('pending_14d')->whereNull('sent_at')->where('aging', '>=', 14)->count(),
+            'max_aging'   => DB::table('pending_14d')->whereNull('sent_at')->max('aging'),
+        ],
+
+        'pending5d' => [
+            'label'       => 'W003 - Pending 5D',
+            'total'       => DB::table('pending')->whereNull('sent_at')->count(),
+            'aging_alert' => DB::table('pending')->whereNull('sent_at')->where('aging', '>', 5)->count(),
+            'max_aging'   => DB::table('pending')->whereNull('sent_at')->max('aging'),
+        ],
+
+        'kci' => [
+            'label'       => 'W004 - KCI',
+            'total'       => DB::table('kci')->whereNull('sent_at')->count(),
+            'aging_alert' => DB::table('kci')->whereNull('sent_at')->where('aging', '>', 20)->count(),
+            'max_aging'   => DB::table('kci')->whereNull('sent_at')->max('aging'),
+        ],
+
+        'finishrepair' => [
+            'label'       => 'W005 - Finish Repair',
+            'total'       => DB::table('finish_repair')->whereNull('sent_at')->count(),
+            'aging_alert' => DB::table('finish_repair')->whereNull('sent_at')->where('aging', '>', 20)->count(),
+            'max_aging'   => DB::table('finish_repair')->whereNull('sent_at')->max('aging'),
+        ],
+
+    ];
+
+    // ★★★ DIUBAH (BARU): hitung persentase tiap kategori terhadap total
+    // gabungan SEMUA kategori (live/dinamis — otomatis ikut naik/turun kalau
+    // ada case baru masuk kapan pun, karena query di atas selalu whereNull('sent_at')
+    // yaitu semua case yang masih aktif sekarang & yang akan datang). ★★★
+    $totalAllCase = array_sum(array_column($monitoringStats, 'total'));
+
+    foreach ($monitoringStats as $key => $m) {
+
+        $monitoringStats[$key]['percent'] = $totalAllCase > 0
+            ? round(($m['total'] / $totalAllCase) * 100, 1)
+            : 0;
     }
+
+    return view('dashboard', compact('dashboard', 'stats', 'monitoringStats', 'totalAllCase'));
+}
     // 🔥 RAW DATA (SUDAH JOIN)
     public function rawData()
     {

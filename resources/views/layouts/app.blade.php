@@ -330,7 +330,7 @@
 
             </h4>
             <span class="badge bg-secondary px-3 py-2">
-                Version 07.03
+                Version 07.15
             </span>
 
             <!-- DASHBOARD -->

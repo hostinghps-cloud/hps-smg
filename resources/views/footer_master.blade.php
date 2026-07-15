@@ -42,6 +42,7 @@
             <div class="modal-content">
 
                 <form
+                    id="addFooterForm"
                     action="/footer-master/store"
                     method="POST">
 
@@ -91,9 +92,9 @@
 
                             <textarea
                                 name="footer_html"
+                                id="footer_html_add"
                                 rows="10"
-                                class="form-control"
-                                required></textarea>
+                                class="form-control"></textarea>
 
                         </div>
 
@@ -148,7 +149,7 @@
                         <tr>
 
                             <th width="80">
-                                ID
+                                No
                             </th>
 
                             <th>
@@ -170,7 +171,7 @@
                         <tr>
 
                             <td>
-                                {{ $item->id }}
+                                  {{ $loop->iteration }}
                             </td>
 
                             <td>
@@ -225,6 +226,7 @@
                                 <div class="modal-content">
 
                                     <form
+                                        id="editFooterForm{{ $item->id }}"
                                         action="/footer-master/update/{{ $item->id }}"
                                         method="POST">
 
@@ -272,9 +274,9 @@
 
                                                 <textarea
                                                     name="footer_html"
+                                                    id="footer_html_edit_{{ $item->id }}"
                                                     rows="10"
-                                                    class="form-control"
-                                                    required>{{ $item->footer_html }}</textarea>
+                                                    class="form-control">{{ $item->footer_html }}</textarea>
 
                                             </div>
 
@@ -335,6 +337,126 @@
 
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<!-- ★★★ DIUBAH b: <script src=".../bootstrap@5.3.3/...bundle.min.js"> DIHAPUS dari sini.
+     Layout (app.blade.php) sudah memuat Bootstrap 5.0.2 duluan, jadi ini duplikat versi beda
+     yang menyebabkan semua tombol di dalam modal (termasuk toolbar Summernote) tidak
+     merespon klik. Baris ini sudah ada sejak file asli, bukan ditambahkan untuk Summernote. ★★★ -->
+
+<!-- SUMMERNOTE RICH TEXT EDITOR (WYSIWYG gratis, sudah ada tombol Table & Code View) -->
+<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+<link href="https://cdn.jsdelivr.net/npm/summernote@0.8.20/dist/summernote-bs5.min.css" rel="stylesheet">
+
+<!-- ★★★ DIUBAH : CSS fix — dropdown Summernote (Font Size, Color, dll) sering ketutup/
+     ke-clip kalau editornya ada di dalam modal Bootstrap. Paksa z-index tinggi & overflow visible. ★★★ -->
+<style>
+    .modal .note-editor .dropdown-menu,
+    .modal .note-editor .note-dropdown-menu {
+        z-index: 3000 !important;
+    }
+    .modal-body {
+        overflow: visible !important;
+    }
+    .modal .note-editor {
+        position: relative;
+        z-index: 1;
+    }
+</style>
+<script src="https://cdn.jsdelivr.net/npm/summernote@0.8.20/dist/summernote-bs5.min.js"></script>
+
+<script>
+    /*
+    |--------------------------------------------------------------------------
+    | RICH TEXT EDITOR (SUMMERNOTE) untuk Footer HTML
+    | Dipasang langsung di atas <textarea name="footer_html">, jadi controller &
+    | database TIDAK berubah sama sekali. Isi textarea otomatis ter-update
+    | tiap kali user mengetik (callback onChange).
+    |--------------------------------------------------------------------------
+    */
+
+    const SUMMERNOTE_TOOLBAR_FOOTER = [
+        ['style', ['style']],
+        ['font', ['bold', 'italic', 'underline', 'clear']],
+        ['fontname', ['fontname']],
+        ['fontsize', ['fontsize']],
+        ['color', ['color']],
+        ['para', ['ul', 'ol', 'paragraph']],
+        ['insert', ['link']],
+        ['view', ['fullscreen', 'codeview']]
+    ];
+
+    function initFooterSummernote(selector) {
+
+        // hindari inisialisasi dobel kalau modal dibuka berkali-kali
+        if ($(selector).next('.note-editor').length) {
+            return;
+        }
+
+        $(selector).summernote({
+            height: 200,
+            toolbar: SUMMERNOTE_TOOLBAR_FOOTER,
+            callbacks: {
+                onChange: function(contents) {
+                    $(selector).val(contents);
+                }
+            }
+        });
+    }
+
+    // ===== EDITOR ADD FOOTER =====
+    document.getElementById('addFooterModal')
+        .addEventListener('shown.bs.modal', function() {
+            initFooterSummernote('#footer_html_add');
+        });
+
+    // ===== EDITOR EDIT FOOTER (tiap baris) =====
+    document.querySelectorAll('div.modal[id^="editFooter"]').forEach(function(modalEl) {
+
+        modalEl.addEventListener('shown.bs.modal', function() {
+
+            const textarea = modalEl.querySelector('textarea[name="footer_html"]');
+
+            if (textarea) {
+                initFooterSummernote('#' + textarea.id);
+            }
+        });
+    });
+</script>
+
+<!-- ★★★ DIUBAH : workaround dropdown Summernote (Font Family, Font Size, Color, dll)
+     yang tidak merespon klik di dalam modal. Logic buka/tutupnya ditulis manual di sini,
+     TIDAK bergantung ke mekanisme Bootstrap sama sekali, supaya pasti berfungsi. ★★★ -->
+<script>
+    document.addEventListener('click', function(e) {
+
+        const toggle = e.target.closest('.note-editor .dropdown-toggle');
+
+        if (!toggle) {
+            if (!e.target.closest('.note-editor .dropdown-menu')) {
+                document.querySelectorAll('.note-editor .dropdown-menu.show')
+                    .forEach(function(m) { m.classList.remove('show'); });
+            }
+            return;
+        }
+
+        e.preventDefault();
+        e.stopPropagation();
+
+        const menu = toggle.nextElementSibling;
+
+        if (!menu || !menu.classList.contains('dropdown-menu')) {
+            return;
+        }
+
+        const isOpen = menu.classList.contains('show');
+
+        document.querySelectorAll('.note-editor .dropdown-menu.show')
+            .forEach(function(m) { m.classList.remove('show'); });
+
+        if (!isOpen) {
+            menu.classList.add('show');
+        }
+
+    }, true);
+</script>
 
 @endsection
